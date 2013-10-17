@@ -1,15 +1,25 @@
 # Copyright (C) 2013 Che-Liang Chiou.
 
 
+TOP := $(shell pwd)
+
+
 REPOSITORY := svn://svn.code.sf.net/p/dosbox/code-0/dosbox/trunk
 REVISION ?= HEAD
 WORKING_COPY := dosbox
+
+
+PATCH := $(TOP)/dosbox.diff
 
 
 OUT ?= out
 
 
 all: | $(WORKING_COPY) $(OUT)
+
+
+patch:
+	cd $(WORKING_COPY) ; svn diff > $(PATCH)
 
 
 clean:
@@ -20,7 +30,7 @@ $(OUT):
 	mkdir -p $(OUT)
 
 
-.PHONY: all clean
+.PHONY: all patch clean
 
 
 ### Check out dosbox repository and patch it locally
