@@ -13,9 +13,16 @@ PATCH := $(TOP)/dosbox.diff
 
 
 OUT ?= out
+OUT_DIRS := $(OUT) $(OUT)/pack
 
 
-all: | $(WORKING_COPY) $(OUT)
+TARGETS	:= $(subst chrome,$(OUT)/pack,chrome/manifest.json \
+		$(wildcard chrome/*.html) \
+		$(wildcard chrome/*.css) \
+		$(wildcard chrome/*.js))
+
+
+all: $(TARGETS) | $(WORKING_COPY) $(OUT_DIRS)
 
 
 patch:
@@ -26,11 +33,15 @@ clean:
 	rm -rf $(WORKING_COPY) $(OUT)
 
 
-$(OUT):
-	mkdir -p $(OUT)
-
-
 .PHONY: all patch clean
+
+
+$(OUT_DIRS):
+	mkdir -p $@
+
+
+$(TARGETS) : $(OUT)/pack/% : chrome/% | $(OUT_DIRS)
+	cp -f $< $@
 
 
 ### Check out dosbox repository and patch it locally

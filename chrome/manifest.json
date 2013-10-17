@@ -1,0 +1,13 @@
+{
+  "name": "Chrome Dosbox",
+  "description": "x86 emulator with DOS on Chrome",
+  "version": "0.0.0",
+  "manifest_version": 2,
+  "minimum_chrome_version": "29",
+  "app": {
+    "background": {
+      "scripts": ["launch.js"],
+      "transient": true
+    }
+  }
+}
