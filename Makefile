@@ -10,7 +10,7 @@ NACL_ENV := $(NACLPORTS_ROOT)/src/build_tools/nacl_env.sh
 
 REPOSITORY := svn://svn.code.sf.net/p/dosbox/code-0/dosbox/trunk
 REVISION ?= HEAD
-WORKING_COPY := dosbox
+DOSBOX_ROOT := dosbox
 
 PATCH := $(TOP)/dosbox.diff
 
@@ -29,20 +29,19 @@ DOSBOX_X86_64 := $(OUT)/chrome-dosbox/dosbox_x86_64.nexe
 DOSBOX_I686   := $(OUT)/chrome-dosbox/dosbox_i686.nexe
 DOSBOX := $(DOSBOX_X86_64) $(DOSBOX_I686)
 NACL_SRCS := $(wildcard chrome/*.h chrome/*.cpp)
-NACL_OBJS := $(patsubst chrome/%.cpp,$(OUT)/obj/%.o,$(wildcard chrome/*.cpp))
 NACL_LIBS := png sdl zlib
 
 
 ### Top-level targets
 
-all: $(CHROME_APP) | $(WORKING_COPY) $(OUT_DIRS)
+all: $(CHROME_APP) | $(DOSBOX_ROOT) $(OUT_DIRS)
 
 
 patch:
-	cd $(WORKING_COPY) ; svn diff > $(PATCH)
+	cd $(DOSBOX_ROOT) ; svn diff > $(PATCH)
 
 clean:
-	rm -rf $(WORKING_COPY) $(OUT)
+	rm -rf $(DOSBOX_ROOT) $(OUT)
 
 .PHONY: all patch clean
 
@@ -67,22 +66,33 @@ $(APP_SRCS) : $(OUT)/chrome-dosbox/% : chrome/% | $(OUT_DIRS)
 
 ### These build rules should be running INSIDE nacl_env.sh
 
-# XXX: We need a timestamp because we clean up everything after builds.
+# XXX: We need a timestamp because we clean up everything in between builds.
 NACL_LIBS_TIMESTAMP := $(OUT)/timestamp-nacl-libs-$(NACL_ARCH)
 
-$(DOSBOX): $(NACL_OBJS) $(NACL_LIBS_TIMESTAMP) | $(OUT_DIRS)
-	$(CXX) $(LDFLAGS) -o $@ $(NACL_OBJS)
+PEPPER_LIB := $(OUT)/obj/libpepper-$(NACL_ARCH).a
+NACL_OBJS := $(patsubst chrome/%.cpp,$(OUT)/obj/%-$(NACL_ARCH).o,\
+	$(wildcard chrome/*.cpp))
 
-$(NACL_OBJS) : $(OUT)/obj/%.o : chrome/%.cpp | $(OUT_DIRS)
+$(DOSBOX): $(PEPPER_LIB) $(NACL_LIBS_TIMESTAMP) | $(OUT_DIRS)
+	DOSBOX=$@ DOSBOX_ROOT=$(DOSBOX_ROOT) ./nacl-dosbox.sh
+
+$(PEPPER_LIB): $(NACL_OBJS)
+	$(AR) cr $@ $<
+
+$(NACL_OBJS) : $(OUT)/obj/%-$(NACL_ARCH).o : chrome/%.cpp | $(OUT_DIRS)
 	$(CXX) $(CFLAGS) -c -o $@ $<
 
-# XXX: We have to run `make clean` in between builds to clean up intermediate
-# files (object files, timestamps, etc.) of the target architecture so that
-# we can build for the next target architecture (the build infrastructure of
-# naclports does not seem to be able to build multiple target architectures).
+#
+# XXX: We clean up intermediate files (object files, timestamps, etc.) of the
+# target architecture in between builds because the build infrastructure of
+# naclports cannot build multiple target architectures.
+#
+# NOTE: I wish I could run `make clean` but naclports will remove everything
+# we have just installed (WTF!).  So rm -rf instead.
+#
 $(NACL_LIBS_TIMESTAMP):
 	$(MAKE) -C $(NACLPORTS_ROOT)/src $(NACL_LIBS)
-	$(MAKE) -C $(NACLPORTS_ROOT)/src clean
+	rm -rf $(NACLPORTS_ROOT)/src/out
 	touch $@
 
 .PHONY: $(NACL_LIBS)
@@ -96,8 +106,8 @@ else
 REPO_URL_REV := $(REPOSITORY)@$(REVISION)
 endif
 
-$(WORKING_COPY):
-	svn checkout $(REPO_URL_REV) $(WORKING_COPY)
+$(DOSBOX_ROOT):
+	svn checkout $(REPO_URL_REV) $(DOSBOX_ROOT)
 
 
 ### Misc
