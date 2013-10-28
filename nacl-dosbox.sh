@@ -19,11 +19,19 @@ fi
 
 set -eu
 
+function realpath() {
+  local curdir=$(pwd)
+  cd "$(dirname $1)"
+  local path="$(pwd)"
+  cd "${curdir}"
+  echo "${path}/$(basename $1)"
+}
+
 export PACKAGE_NAME=dosbox-svn
 source ${NACLPORTS_ROOT}/src/build_tools/common.sh
 
-export LIBS="-L${NACLPORTS_LIBDIR} -lm -lpng -lz"
-export LDFLAGS="$NACLPORTS_LDFLAGS -Wl,--as-needed"
+export LIBS="$(realpath ${PPAPI_LIB}) -lnacl_io"
+export LDFLAGS="$NACLPORTS_LDFLAGS"
 
 # TODO(clchiou): Do we still need this?
 HOST=${NACL_CROSS_PREFIX}
@@ -46,10 +54,8 @@ CONFIG_FLAGS="--host=${HOST} \
 pushd ${DOSBOX_ROOT}
 ./autogen.sh
 ./configure ${CONFIG_FLAGS}
-
-# TODO(clchiou): Port dosbox to nacl.
-#make clean
-#make
+make clean
+make
 
 popd
-cp -f ${DOSBOX_ROOT}/src/dosbox ${DOSBOX}
+cp -f ${DOSBOX_ROOT}/src/dosbox${NACL_EXEEXT} ${DOSBOX}

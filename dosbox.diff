@@ -1,0 +1,47 @@
+Index: src/cpu/core_dyn_x86/risc_x86.h
+===================================================================
+--- src/cpu/core_dyn_x86/risc_x86.h	(revision 3840)
++++ src/cpu/core_dyn_x86/risc_x86.h	(working copy)
+@@ -133,7 +133,11 @@
+ 		"pushl %%ebp						\n"
+ 		"pushl $(run_return_adress)			\n"
+ 		"pushl  %2							\n"
++#ifndef __native_client__
+ 		"jmp  *%3							\n"
++#else
++		"nacljmp  %3							\n"
++#endif
+ 		"run_return_adress:					\n"
+ 		"popl %%ebp							\n"
+ 		:"=a" (retval), "=c" (tempflags)
+Index: src/cpu/cpu.cpp
+===================================================================
+--- src/cpu/cpu.cpp	(revision 3840)
++++ src/cpu/cpu.cpp	(working copy)
+@@ -22,7 +22,9 @@
+ #include <stddef.h>
+ #include "dosbox.h"
+ #include "cpu.h"
+-#include "memory.h"
++#ifndef __native_client__
++#  include "memory.h"
++#endif
+ #include "debug.h"
+ #include "mapper.h"
+ #include "setup.h"
+Index: src/gui/sdlmain.cpp
+===================================================================
+--- src/gui/sdlmain.cpp	(revision 3840)
++++ src/gui/sdlmain.cpp	(working copy)
+@@ -1899,7 +1899,10 @@
+ 	 */
+ 	putenv(const_cast<char*>("SDL_DISABLE_LOCK_KEYS=1"));
+ #endif
+-	if ( SDL_Init( SDL_INIT_AUDIO|SDL_INIT_VIDEO|SDL_INIT_TIMER|SDL_INIT_CDROM
++	if ( SDL_Init( SDL_INIT_AUDIO|SDL_INIT_VIDEO|SDL_INIT_TIMER
++#ifndef __native_client__
++		|SDL_INIT_CDROM
++#endif
+ 		|SDL_INIT_NOPARACHUTE
+ 		) < 0 ) E_Exit("Can't init SDL %s",SDL_GetError());
+ 	sdl.inited = true;

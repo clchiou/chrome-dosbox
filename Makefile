@@ -69,14 +69,15 @@ $(APP_SRCS) : $(OUT)/chrome-dosbox/% : chrome/% | $(OUT_DIRS)
 # XXX: We need a timestamp because we clean up everything in between builds.
 NACL_LIBS_TIMESTAMP := $(OUT)/timestamp-nacl-libs-$(NACL_ARCH)
 
-PEPPER_LIB := $(OUT)/obj/libpepper-$(NACL_ARCH).a
+PPAPI_LIB := $(OUT)/obj/libppapi-$(NACL_ARCH).a
 NACL_OBJS := $(patsubst chrome/%.cpp,$(OUT)/obj/%-$(NACL_ARCH).o,\
 	$(wildcard chrome/*.cpp))
 
-$(DOSBOX): $(PEPPER_LIB) $(NACL_LIBS_TIMESTAMP) | $(OUT_DIRS)
-	DOSBOX=$@ DOSBOX_ROOT=$(DOSBOX_ROOT) ./nacl-dosbox.sh
+$(DOSBOX): $(PPAPI_LIB) $(NACL_LIBS_TIMESTAMP) | $(OUT_DIRS)
+	DOSBOX=$@ DOSBOX_ROOT=$(DOSBOX_ROOT) PPAPI_LIB=$(PPAPI_LIB) \
+	./nacl-dosbox.sh
 
-$(PEPPER_LIB): $(NACL_OBJS)
+$(PPAPI_LIB): $(NACL_OBJS)
 	$(AR) cr $@ $<
 
 $(NACL_OBJS) : $(OUT)/obj/%-$(NACL_ARCH).o : chrome/%.cpp | $(OUT_DIRS)
