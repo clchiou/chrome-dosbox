@@ -69,13 +69,22 @@ $(APP_SRCS) : $(OUT)/chrome-dosbox/% : chrome/% | $(OUT_DIRS)
 # XXX: We need a timestamp because we clean up everything in between builds.
 NACL_LIBS_TIMESTAMP := $(OUT)/timestamp-nacl-libs-$(NACL_ARCH)
 
+BUILD_ROOT := $(OUT)/dosbox-$(NACL_ARCH)
+
 PPAPI_LIB := $(OUT)/obj/libppapi-$(NACL_ARCH).a
 NACL_OBJS := $(patsubst chrome/%.cpp,$(OUT)/obj/%-$(NACL_ARCH).o,\
 	$(wildcard chrome/*.cpp))
 
-$(DOSBOX): $(PPAPI_LIB) $(NACL_LIBS_TIMESTAMP) | $(OUT_DIRS)
-	DOSBOX=$@ DOSBOX_ROOT=$(DOSBOX_ROOT) PPAPI_LIB=$(PPAPI_LIB) \
-	./nacl-dosbox.sh
+$(DOSBOX): $(PPAPI_LIB) $(NACL_LIBS_TIMESTAMP) | $(BUILD_ROOT) $(OUT_DIRS)
+	make -C $(BUILD_ROOT)
+	cp $(BUILD_ROOT)/src/dosbox.nexe $@
+
+$(BUILD_ROOT): | $(DOSBOX_ROOT)
+	mkdir -p $@
+	BUILD_ROOT=$(BUILD_ROOT) \
+	DOSBOX_ROOT=$(DOSBOX_ROOT) \
+	PPAPI_LIB=$(PPAPI_LIB) \
+	./nacl-configure
 
 $(PPAPI_LIB): $(NACL_OBJS)
 	$(AR) cr $@ $<
@@ -109,6 +118,7 @@ endif
 
 $(DOSBOX_ROOT):
 	svn checkout $(REPO_URL_REV) $(DOSBOX_ROOT)
+	cd $(DOSBOX_ROOT) ; patch -p0 < $(PATCH) ; ./autogen.sh
 
 
 ### Misc

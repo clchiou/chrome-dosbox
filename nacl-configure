@@ -1,16 +1,6 @@
 #!/bin/bash
 # Copyright (C) 2013 Che-Liang Chiou.
 
-if [ -z "${NACLPORTS_ROOT:-}" ]; then
-  echo "NACLPORTS_ROOT is not defined"
-  exit 1
-fi
-
-if [ -z "${DOSBOX:-}" -o -z "${DOSBOX_ROOT:-}" ]; then
-  echo "DOSBOX or DOSBOX_ROOT is not defined"
-  exit 1
-fi
-
 if [ $# -gt 0 ]; then
   echo "Command-line arguments (generally) break nacl_env.sh :("
   echo "Use environment variables instead!"
@@ -43,7 +33,8 @@ if [ ${NACL_ARCH} = "pnacl" ]; then
   HOST="nacl"
 fi
 
-CONFIG_FLAGS="--host=${HOST} \
+CONFIGURE="$(realpath ${DOSBOX_ROOT})/configure"
+CONFIGURE_FLAGS="--host=${HOST} \
     --prefix=${NACLPORTS_PREFIX} \
     --exec-prefix=${NACLPORTS_PREFIX} \
     --libdir=${NACLPORTS_LIBDIR} \
@@ -51,11 +42,5 @@ CONFIG_FLAGS="--host=${HOST} \
     --with-sdl-prefix=${NACLPORTS_PREFIX} \
     --with-sdl-exec-prefix=${NACLPORTS_PREFIX}"
 
-pushd ${DOSBOX_ROOT}
-./autogen.sh
-./configure ${CONFIG_FLAGS}
-make clean
-make
-
-popd
-cp -f ${DOSBOX_ROOT}/src/dosbox${NACL_EXEEXT} ${DOSBOX}
+cd ${BUILD_ROOT}
+${CONFIGURE} ${CONFIGURE_FLAGS}
