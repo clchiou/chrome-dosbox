@@ -25,8 +25,8 @@ APP_SRCS := $(subst chrome,$(OUT)/chrome-dosbox,\
 	$(wildcard chrome/*.css) \
 	$(wildcard chrome/*.js))
 
-DOSBOX_X86_64 := $(OUT)/chrome-dosbox/dosbox_x86_64.nexe
-DOSBOX_I686   := $(OUT)/chrome-dosbox/dosbox_i686.nexe
+DOSBOX_X86_64 := $(OUT)/chrome-dosbox/dosbox-x86_64.nexe
+DOSBOX_I686   := $(OUT)/chrome-dosbox/dosbox-i686.nexe
 DOSBOX := $(DOSBOX_X86_64) $(DOSBOX_I686)
 NACL_SRCS := $(wildcard chrome/*.h chrome/*.cpp)
 NACL_LIBS := png sdl zlib
@@ -48,36 +48,33 @@ clean:
 
 ### These build rules should be running OUTSIDE nacl_env.sh
 
-# XXX: Use timestamp because we cannot depend build targets on dosbox_*.nexe,
-# which should be running inside nacl_env.sh.
-DOSBOX_TIMESTAMP := $(OUT)/timestamp-dosbox
-
-$(CHROME_APP): $(APP_SRCS) $(DOSBOX_TIMESTAMP)
+$(CHROME_APP): $(APP_SRCS) | make-dosbox
 	cd $(OUT); zip -r chrome-dosbox.zip chrome-dosbox
 
-$(DOSBOX_TIMESTAMP): $(NACL_SRCS)
+make-dosbox:
 	NACL_ARCH=x86_64 $(NACL_ENV) $(MAKE) $(DOSBOX_X86_64)
 	NACL_ARCH=i686   $(NACL_ENV) $(MAKE) $(DOSBOX_I686)
-	touch $@
 
 $(APP_SRCS) : $(OUT)/chrome-dosbox/% : chrome/% | $(OUT_DIRS)
 	cp -f $< $@
 
+.PHONY: make-dosbox
+
 
 ### These build rules should be running INSIDE nacl_env.sh
 
-# XXX: We need a timestamp because we clean up everything in between builds.
-NACL_LIBS_TIMESTAMP := $(OUT)/timestamp-nacl-libs-$(NACL_ARCH)
-
-BUILD_ROOT := $(OUT)/dosbox-$(NACL_ARCH)
+BUILD_ROOT  := $(OUT)/dosbox-$(NACL_ARCH)
+DOSBOX_NEXE := $(BUILD_ROOT)/src/dosbox.nexe
 
 PPAPI_LIB := $(OUT)/obj/libppapi-$(NACL_ARCH).a
 NACL_OBJS := $(patsubst chrome/%.cpp,$(OUT)/obj/%-$(NACL_ARCH).o,\
 	$(wildcard chrome/*.cpp))
 
-$(DOSBOX): $(PPAPI_LIB) $(NACL_LIBS_TIMESTAMP) | $(BUILD_ROOT) $(OUT_DIRS)
-	make -C $(BUILD_ROOT)
-	cp $(BUILD_ROOT)/src/dosbox.nexe $@
+$(DOSBOX): $(DOSBOX_NEXE) | $(OUT_DIRS)
+	cp -f $< $@
+
+$(DOSBOX_NEXE): $(PPAPI_LIB) | make-nacl-libs $(BUILD_ROOT)
+	$(MAKE) -C $(BUILD_ROOT)
 
 $(BUILD_ROOT): | $(DOSBOX_ROOT)
 	mkdir -p $@
@@ -100,12 +97,12 @@ $(NACL_OBJS) : $(OUT)/obj/%-$(NACL_ARCH).o : chrome/%.cpp | $(OUT_DIRS)
 # NOTE: I wish I could run `make clean` but naclports will remove everything
 # we have just installed (WTF!).  So rm -rf instead.
 #
-$(NACL_LIBS_TIMESTAMP):
+make-nacl-libs:
 	$(MAKE) -C $(NACLPORTS_ROOT)/src $(NACL_LIBS)
-	rm -rf $(NACLPORTS_ROOT)/src/out
-	touch $@
+	rm -rf $(NACLPORTS_ROOT)/src/out/repository
+	rm -rf $(NACLPORTS_ROOT)/src/out/stamp
 
-.PHONY: $(NACL_LIBS)
+.PHONY: make-nacl-libs
 
 
 ### Check out dosbox repository and patch it locally
