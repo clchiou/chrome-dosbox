@@ -1,0 +1,56 @@
+# Copyright (C) 2013 Che-Liang Chiou.
+
+ifndef NACL_ARCH
+$(error NACL_ARCH is not defined)
+endif
+
+ifndef NACLPORTS_ROOT
+$(error NACLPORTS_ROOT is not defined)
+endif
+
+ifndef OUT
+$(error OUT is not defined)
+endif
+
+
+NACL_ENV := $(NACLPORTS_ROOT)/src/build_tools/nacl_env.sh
+
+DOSBOX_X86_64 := $(OUT)/chrome-dosbox/dosbox-x86_64.nexe
+DOSBOX_I686   := $(OUT)/chrome-dosbox/dosbox-i686.nexe
+DOSBOX := $(DOSBOX_X86_64) $(DOSBOX_I686)
+
+DOSBOX_ROOT := dosbox
+BUILD_ROOT  := $(OUT)/dosbox-$(NACL_ARCH)
+DOSBOX_NEXE := $(BUILD_ROOT)/src/dosbox.nexe
+
+NACL_LIBS := png sdl zlib
+
+PPAPI_LIB := $(OUT)/obj/libppapi-$(NACL_ARCH).a
+export PPAPI_LIB
+
+
+$(DOSBOX): $(DOSBOX_NEXE)
+	cp -f $< $@
+
+$(DOSBOX_NEXE): | make-dosbox
+
+make-dosbox: $(PPAPI_LIB) $(BUILD_ROOT)/Makefile | make-nacl-libs
+	$(NACL_ENV) $(MAKE) -C $(BUILD_ROOT)
+
+make-nacl-libs:
+	@echo Build $(NACL_ARCH) libraries $(NACL_LIBS)
+	$(MAKE) -C $(NACLPORTS_ROOT)/src $(NACL_LIBS)
+
+$(PPAPI_LIB): force
+	$(NACL_ENV) $(MAKE) -C chrome
+
+$(BUILD_ROOT)/Makefile: | $(BUILD_ROOT)
+	BUILD_ROOT=$(BUILD_ROOT) \
+	DOSBOX_ROOT=$(DOSBOX_ROOT) \
+	PPAPI_LIB=$(PPAPI_LIB) \
+	$(NACL_ENV) ./nacl-configure
+
+$(BUILD_ROOT):
+	mkdir -p $@
+
+.PHONY: make-dosbox make-nacl-libs force
