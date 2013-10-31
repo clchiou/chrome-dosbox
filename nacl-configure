@@ -44,3 +44,7 @@ CONFIGURE_FLAGS="--host=${HOST} \
 
 cd ${BUILD_ROOT}
 ${CONFIGURE} ${CONFIGURE_FLAGS}
+
+# XXX: Hack for ld link order
+sed -i 's/-Wl,--start-group -lSDLmain/-Wl,--start-group -lnacl_io -lSDLmain/' \
+  ${BUILD_ROOT}/src/Makefile

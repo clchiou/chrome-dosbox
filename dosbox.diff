@@ -33,7 +33,21 @@ Index: src/gui/sdlmain.cpp
 ===================================================================
 --- src/gui/sdlmain.cpp	(revision 3840)
 +++ src/gui/sdlmain.cpp	(working copy)
-@@ -1899,7 +1899,10 @@
+@@ -1817,9 +1817,13 @@
+ 	exit(0);
+ }
+ 
++int ChromeAppInit(int* argc_ptr, char** argv_ptr[]);
+ 
+ //extern void UI_Init(void);
+ int main(int argc, char* argv[]) {
++	if (ChromeAppInit(&argc, &argv))
++		return 1;
++
+ 	try {
+ 		CommandLine com_line(argc,argv);
+ 		Config myconf(&com_line);
+@@ -1899,7 +1903,10 @@
  	 */
  	putenv(const_cast<char*>("SDL_DISABLE_LOCK_KEYS=1"));
  #endif

@@ -15,6 +15,7 @@ CHROME_APP := $(OUT)/chrome-dosbox.zip
 
 APP_SRCS := $(subst chrome,$(OUT)/chrome-dosbox,\
 	chrome/manifest.json \
+	chrome/dosbox.nmf \
 	$(wildcard chrome/*.html) \
 	$(wildcard chrome/*.css) \
 	$(wildcard chrome/*.js))

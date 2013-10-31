@@ -37,8 +37,19 @@ $(DOSBOX_NEXE): | make-dosbox
 make-dosbox: $(PPAPI_LIB) $(BUILD_ROOT)/Makefile | make-nacl-libs
 	$(NACL_ENV) $(MAKE) -C $(BUILD_ROOT)
 
+#
+# XXX: We clean up intermediate files (object files, timestamps, etc.) of the
+# target architecture in between builds because the build infrastructure of
+# naclports cannot build multiple target architectures (especially when building
+# Regal).
+#
+# NOTE: I wish I could run `make clean` but naclports will remove everything
+# we have just installed (WTF!).  So rm -rf instead.
+#
 make-nacl-libs:
 	@echo Build $(NACL_ARCH) libraries $(NACL_LIBS)
+	rm -rf $(NACLPORTS_ROOT)/src/out/repository
+	rm -rf $(NACLPORTS_ROOT)/src/out/stamp
 	$(MAKE) -C $(NACLPORTS_ROOT)/src $(NACL_LIBS)
 
 $(PPAPI_LIB): force

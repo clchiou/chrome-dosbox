@@ -17,7 +17,7 @@ NACL_OBJS := $(patsubst %.cpp,$(OUT)/obj/%-$(NACL_ARCH).o,$(wildcard *.cpp))
 
 
 $(PPAPI_LIB): $(NACL_OBJS)
-	$(AR) cr $@ $<
+	$(AR) cr $@ $^
 
 $(NACL_OBJS) : $(OUT)/obj/%-$(NACL_ARCH).o : %.cpp
 	@echo Compile chrome/$$(basename $<)
