@@ -1,3 +1,40 @@
+Index: src/gui/sdl_mapper.cpp
+===================================================================
+--- src/gui/sdl_mapper.cpp	(revision 3840)
++++ src/gui/sdl_mapper.cpp	(working copy)
+@@ -359,8 +359,12 @@
+    expression will raise a compiler error if the condition is false.  */
+ typedef char assert_right_size [MAX_SCANCODES == (sizeof(sdlkey_map)/sizeof(sdlkey_map[0]))	? 1 : -1];
+ 
+-#else // !MACOSX
++#elif defined(__native_client__)
+ 
++extern SDLKey sdlkey_map[MAX_SCANCODES];
++
++#else // !MACOSX && !__native_client__
++
+ #define MAX_SCANCODES 212
+ static SDLKey sdlkey_map[MAX_SCANCODES]={SDLK_UNKNOWN,SDLK_ESCAPE,
+ 	SDLK_1,SDLK_2,SDLK_3,SDLK_4,SDLK_5,SDLK_6,SDLK_7,SDLK_8,SDLK_9,SDLK_0,
+@@ -414,7 +418,8 @@
+ 			/* try to retrieve key from symbolic key as scancode is zero */
+ 			if (keysym.sym<MAX_SDLKEYS) key=scancode_map[(Bitu)keysym.sym];
+ 		} 
+-#if !defined (WIN32) && !defined (MACOSX) && !defined(OS2)
++#if !defined (WIN32) && !defined (MACOSX) && !defined(OS2) && \
++		!defined(__native_client__)
+ 		/* Linux adds 8 to all scancodes */
+ 		else key-=8;
+ #endif
+@@ -2407,7 +2412,7 @@
+ 		usescancodes=true;
+ 
+ 		/* Note: table has to be tested/updated for various OSs */
+-#if defined (MACOSX)
++#if defined (MACOSX) || defined(__native_client__)
+ 		/* nothing */
+ #elif defined(OS2)
+ 		sdlkey_map[0x61]=SDLK_UP;
 Index: src/gui/sdlmain.cpp
 ===================================================================
 --- src/gui/sdlmain.cpp	(revision 3840)

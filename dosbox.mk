@@ -28,6 +28,11 @@ NACL_LIBS := png sdl zlib
 PPAPI_LIB := $(OUT)/obj/libppapi-$(NACL_ARCH).a
 export PPAPI_LIB
 
+# TODO(clchiou): Get this path from naclports/.../common.sh?
+HEADER := toolchain/linux_x86_newlib/$(NACL_ARCH)-nacl/usr/include
+CXXFLAGS := $(CXXFLAGS) -I$(NACLPORTS_ROOT)/$(HEADER)
+export CXXFLAGS
+
 
 $(DOSBOX): $(DOSBOX_NEXE)
 	cp -f $< $@

@@ -21,4 +21,4 @@ $(PPAPI_LIB): $(NACL_OBJS)
 
 $(NACL_OBJS) : $(OUT)/obj/%-$(NACL_ARCH).o : %.cpp
 	@echo Compile chrome/$$(basename $<)
-	$(CXX) $(CFLAGS) -c -o $@ $<
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
