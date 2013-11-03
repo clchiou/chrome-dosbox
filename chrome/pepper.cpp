@@ -137,19 +137,10 @@ bool Instance::Main() {
     LOG(ERROR, "Could not re-mount root directory: %s", strerror(errno));
     return false;
   }
-
-  // TODO(clchiou): Figure out why html5fs doesn't work; I highly suspect that
-  // nacl_io does not implement that yet :(
-#if 0
   // 1073741824 = 1 GB
   const char* mount_data = "type=PERSISTENT,expected_size=1073741824";
   if (mount("", "/data", "html5fs", 0, mount_data)) {
     LOG(ERROR, "Could not mount /data: %s", strerror(errno));
-    return false;
-  }
-#endif
-  if (!MakeDirectory("/data")) {
-    LOG(ERROR, "Could not make directory /data");
     return false;
   }
 
