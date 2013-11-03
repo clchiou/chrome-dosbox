@@ -1,14 +1,45 @@
+Index: src/ints/bios.cpp
+===================================================================
+--- src/ints/bios.cpp	(revision 3840)
++++ src/ints/bios.cpp	(working copy)
+@@ -490,11 +490,10 @@
+ 
+ static void BIOS_HostTimeSync() {
+ 	/* Setup time and date */
+-	struct timeb timebuffer;
+-	ftime(&timebuffer);
+-	
++	time_t curtime;
+ 	struct tm *loctime;
+-	loctime = localtime (&timebuffer.time);
++	curtime = time (NULL);
++	loctime = localtime (&curtime);
+ 
+ 	/*
+ 	loctime->tm_hour = 23;
+@@ -512,8 +511,8 @@
+ 	Bit32u ticks=(Bit32u)(((double)(
+ 		loctime->tm_hour*3600*1000+
+ 		loctime->tm_min*60*1000+
+-		loctime->tm_sec*1000+
+-		timebuffer.millitm))*(((double)PIT_TICK_RATE/65536.0)/1000.0));
++		loctime->tm_sec*1000
++		))*(((double)PIT_TICK_RATE/65536.0)/1000.0));
+ 	mem_writed(BIOS_TIMER,ticks);
+ }
+ 
 Index: src/gui/sdl_mapper.cpp
 ===================================================================
 --- src/gui/sdl_mapper.cpp	(revision 3840)
 +++ src/gui/sdl_mapper.cpp	(working copy)
-@@ -359,8 +359,12 @@
+@@ -359,8 +359,13 @@
     expression will raise a compiler error if the condition is false.  */
  typedef char assert_right_size [MAX_SCANCODES == (sizeof(sdlkey_map)/sizeof(sdlkey_map[0]))	? 1 : -1];
  
 -#else // !MACOSX
 +#elif defined(__native_client__)
  
++#define MAX_SCANCODES 256
 +extern SDLKey sdlkey_map[MAX_SCANCODES];
 +
 +#else // !MACOSX && !__native_client__
@@ -16,7 +47,7 @@ Index: src/gui/sdl_mapper.cpp
  #define MAX_SCANCODES 212
  static SDLKey sdlkey_map[MAX_SCANCODES]={SDLK_UNKNOWN,SDLK_ESCAPE,
  	SDLK_1,SDLK_2,SDLK_3,SDLK_4,SDLK_5,SDLK_6,SDLK_7,SDLK_8,SDLK_9,SDLK_0,
-@@ -414,7 +418,8 @@
+@@ -414,7 +419,8 @@
  			/* try to retrieve key from symbolic key as scancode is zero */
  			if (keysym.sym<MAX_SDLKEYS) key=scancode_map[(Bitu)keysym.sym];
  		} 
@@ -26,7 +57,7 @@ Index: src/gui/sdl_mapper.cpp
  		/* Linux adds 8 to all scancodes */
  		else key-=8;
  #endif
-@@ -2407,7 +2412,7 @@
+@@ -2407,7 +2413,7 @@
  		usescancodes=true;
  
  		/* Note: table has to be tested/updated for various OSs */
@@ -39,21 +70,7 @@ Index: src/gui/sdlmain.cpp
 ===================================================================
 --- src/gui/sdlmain.cpp	(revision 3840)
 +++ src/gui/sdlmain.cpp	(working copy)
-@@ -1817,9 +1817,13 @@
- 	exit(0);
- }
- 
-+int ChromeAppInit(int* argc_ptr, char** argv_ptr[]);
- 
- //extern void UI_Init(void);
- int main(int argc, char* argv[]) {
-+	if (ChromeAppInit(&argc, &argv))
-+		return 1;
-+
- 	try {
- 		CommandLine com_line(argc,argv);
- 		Config myconf(&com_line);
-@@ -1899,7 +1903,10 @@
+@@ -1899,7 +1899,10 @@
  	 */
  	putenv(const_cast<char*>("SDL_DISABLE_LOCK_KEYS=1"));
  #endif
@@ -96,33 +113,3 @@ Index: src/cpu/cpu.cpp
  #include "debug.h"
  #include "mapper.h"
  #include "setup.h"
-Index: src/ints/bios.cpp
-===================================================================
---- src/ints/bios.cpp	(revision 3840)
-+++ src/ints/bios.cpp	(working copy)
-@@ -490,11 +490,10 @@
- 
- static void BIOS_HostTimeSync() {
- 	/* Setup time and date */
--	struct timeb timebuffer;
--	ftime(&timebuffer);
--	
-+	time_t curtime;
- 	struct tm *loctime;
--	loctime = localtime (&timebuffer.time);
-+	curtime = time (NULL);
-+	loctime = localtime (&curtime);
- 
- 	/*
- 	loctime->tm_hour = 23;
-@@ -512,8 +511,8 @@
- 	Bit32u ticks=(Bit32u)(((double)(
- 		loctime->tm_hour*3600*1000+
- 		loctime->tm_min*60*1000+
--		loctime->tm_sec*1000+
--		timebuffer.millitm))*(((double)PIT_TICK_RATE/65536.0)/1000.0));
-+		loctime->tm_sec*1000
-+		))*(((double)PIT_TICK_RATE/65536.0)/1000.0));
- 	mem_writed(BIOS_TIMER,ticks);
- }
- 
