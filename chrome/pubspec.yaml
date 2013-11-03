@@ -1,0 +1,4 @@
+name: dosbox
+description: x86 emulator with DOS on Chrome
+dependencies:
+  browser: any

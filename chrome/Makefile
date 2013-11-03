@@ -16,9 +16,15 @@ endif
 NACL_OBJS := $(patsubst %.cpp,$(OUT)/obj/%-$(NACL_ARCH).o,$(wildcard *.cpp))
 
 
+all: $(PPAPI_LIB)
+
+
 $(PPAPI_LIB): $(NACL_OBJS)
 	$(AR) cr $@ $^
 
 $(NACL_OBJS) : $(OUT)/obj/%-$(NACL_ARCH).o : %.cpp
 	@echo Compile chrome/$$(basename $<)
 	$(CXX) $(CFLAGS) $(CXXFLAGS) -c -o $@ $<
+
+
+.PHONY: all
