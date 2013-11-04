@@ -7,11 +7,19 @@ Copyright (C) 2013 Che-Liang Chiou.
     <meta charset="utf-8">
     <title>Chrome Dosbox</title>
     <link rel="chrome-application-definition" href="manifest.json">
+    <link type="text/css" rel="stylesheet" href="dosbox.css">
   </head>
   <body>
+    <ul class="toolbar">
+      <li class="toolbar-item">
+      <a class="toolbar-content" href="#">Import Directory</a>
+      </li>
+      <li id="status-item" class="toolbar-item">
+      <div id="status" class="toolbar-content"></div>
+      </li>
+    </ul>
     <div id="nacl-module-container"></div>
-    <script src="packages/browser/interop.js"></script>
-    <script src="bootstrap.js"></script>
-    <script src="dosbox.dart" type="application/dart"></script>
+    <script src="jquery-2.0.3.min.js"></script>
+    <script src="dosbox.js"></script>
   </body>
 </html>

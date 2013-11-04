@@ -1,0 +1,27 @@
+/* Copyright (C) 2013 Che-Liang Chiou. */
+
+body {
+  background-color: #000000;
+}
+
+ul.toolbar {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.toolbar-item {
+  float: left;
+  width: 200px;
+}
+
+.toolbar-content {
+  font-size: 11pt;
+  font-family: "Lucida Console", monospace;
+  color: #f8f8f8;
+}
+
+#status-item {
+  float: right;
+}
