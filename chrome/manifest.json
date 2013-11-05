@@ -11,7 +11,7 @@
     }
   },
   "permissions": [
-    {"fileSystem": ["write", "directory"]},
+    {"fileSystem": ["directory"]},
     "unlimitedStorage"
   ]
 }
