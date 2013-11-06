@@ -39,8 +39,19 @@ function importDirectory() {
   var requestFileSystem = window.requestFileSystem ||
                           window.webkitRequestFileSystem;
 
+  function importData(srcEntry, dstEntry) {
+    if (dstEntry === undefined) {
+      console.log('Could not copy to undefined');
+      return;
+    }
+    srcEntry.copyTo(dstEntry, srcEntry.name, function () {
+      console.log('Copy ' + srcEntry.name + ' to ' + dstEntry.name);
+    },
+    onError);
+  }
+
   function onError(error) {
-    console.log('Error: ' + errorToString(error));
+    console.log('Error: ' + error.name);
   }
 
   // TODO(clchiou): Warn use that he should not choose symlink; otherwise
@@ -52,46 +63,20 @@ function importDirectory() {
       console.log('Could not copy from undefined');
       return;
     }
+    /*
+    chrome.syncFileSystem.requestFileSystem(function (fs) {
+      if (chrome.runtime.lastError) {
+        console.log('requestFileSystem: ' + chrome.runtime.lastError.message);
+        return;
+      }
+      fs.root.getDirectory(rootPath, {}, importData.bind(this, srcEntry));
+    });
+    */
     requestFileSystem(window.PERSISTENT, quota, function (fs) {
-      fs.root.getDirectory(rootPath, {}, function (dstEntry) {
-        if (dstEntry === undefined) {
-          console.log('Could not copy to undefined');
-          return;
-        }
-        srcEntry.copyTo(dstEntry, srcEntry.name, function () {
-          console.log('Copy ' + srcEntry.name + ' to ' + dstEntry.name);
-        },
-        onError);
-      });
+      fs.root.getDirectory(rootPath, {}, importData.bind(this, srcEntry));
     },
     onError);
   });
-}
-
-
-function errorToString(error) {
-  var msg = '';
-  switch (error.code) {
-    case FileError.QUOTA_EXCEEDED_ERR:
-      msg = 'QUOTA_EXCEEDED_ERR';
-      break;
-    case FileError.NOT_FOUND_ERR:
-      msg = 'NOT_FOUND_ERR';
-      break;
-    case FileError.SECURITY_ERR:
-      msg = 'SECURITY_ERR';
-      break;
-    case FileError.INVALID_MODIFICATION_ERR:
-      msg = 'INVALID_MODIFICATION_ERR';
-      break;
-    case FileError.INVALID_STATE_ERR:
-      msg = 'INVALID_STATE_ERR';
-      break;
-    default:
-      msg = 'Unknown Error';
-      break;
-  };
-  return msg;
 }
 
 

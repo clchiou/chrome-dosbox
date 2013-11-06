@@ -12,6 +12,7 @@
   },
   "permissions": [
     {"fileSystem": ["directory"]},
+    "syncFileSystem",
     "unlimitedStorage"
   ]
 }
