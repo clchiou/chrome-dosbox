@@ -63,13 +63,23 @@ function importDirectory() {
       console.log('Could not copy from undefined');
       return;
     }
+    // To make this work, you have to enable
+    //  chrome://flags/#enable-syncfs-directory-operation
+    // flag.  And note that sync'ed data will be under another directory
+    //  'Chrome Syncable FileSystem Dev'
+    // instead of the normal
+    //  'Chrome Syncable FileSystem'
+    // directory.
     /*
     chrome.syncFileSystem.requestFileSystem(function (fs) {
       if (chrome.runtime.lastError) {
         console.log('requestFileSystem: ' + chrome.runtime.lastError.message);
         return;
       }
-      fs.root.getDirectory(rootPath, {}, importData.bind(this, srcEntry));
+      fs.root.getDirectory(rootPath,
+        {create: true},
+        importData.bind(this, srcEntry),
+        onError);
     });
     */
     requestFileSystem(window.PERSISTENT, quota, function (fs) {
