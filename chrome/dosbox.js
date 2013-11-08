@@ -63,7 +63,6 @@ function SyncFileSystem(path) {
   var fs = null;
 
   function requestFileSystem(onFileSystem, onError) {
-    console.log('Request syncfs');
     chrome.syncFileSystem.requestFileSystem(function (fs_) {
       if (chrome.runtime.lastError) {
         onError(chrome.runtime.lastError);
@@ -76,7 +75,7 @@ function SyncFileSystem(path) {
   self.requestFileSystem = requestFileSystem;
 
   function getDirectory(onDirectory, onError) {
-    console.log('Get syncfs directory: path=' + path);
+    console.log('syncfs: path=' + path);
     if (path === '/') {
       onDirectory(fs.root);
     } else {
@@ -95,7 +94,6 @@ function Html5FileSystem(requestFs, path) {
   var fs = null;
 
   function requestFileSystem(onFileSystem, onError) {
-    console.log('Request html5fs');
     requestFs(function (fs_) {
       fs = fs_;
       console.log('html5fs: ' + fs.root.toURL());
@@ -106,7 +104,7 @@ function Html5FileSystem(requestFs, path) {
   self.requestFileSystem = requestFileSystem;
 
   function getDirectory(onDirectory, onError) {
-    console.log('Get html5fs directory: path=' + path);
+    console.log('html5fs: path=' + path);
     if (path === '/') {
       onDirectory(fs.root);
     } else {
@@ -119,47 +117,48 @@ function Html5FileSystem(requestFs, path) {
 }
 
 
-function copyDirectory(src, dst, onSuccess, onError_) {
-  function onError(caller, error) {
-    console.log(caller + ': ' + error.name);
-    onError_(error);
+function copyDirectory(src, dst, onSuccess, onError) {
+  // XXX This is madness! We should not nest this deep!
+
+  src.requestFileSystem(function () {
+  src.getDirectory(function (srcEntry) {
+  if (srcEntry === undefined) {
+    onError({name: 'Could not copy from undefined'});
+    return;
   }
 
-  console.log('Request src file system');
-  src.requestFileSystem(function () {
-    console.log('Request src entry');
-    src.getDirectory(function (srcEntry) {
-      if (srcEntry === undefined) {
-        onError('src.getDirectory',
-          {name: 'Could not copy from undefined'});
-        return;
-      }
-      console.log('Request dst file system');
-      dst.requestFileSystem(function () {
-        console.log('Request dst entry');
-        dst.getDirectory(function (dstEntry) {
-          if (dstEntry === undefined) {
-            onError('dst.getDirectory',
-              {name: 'Could not copy to undefined'});
-            return;
-          }
-          console.log('Copy ' + srcEntry.fullPath + ' to ' + dstEntry.fullPath);
-          srcEntry.copyTo(dstEntry, null, function () {
-            onSuccess();
-          },
-          onError.bind(this, 'copyTo'));
-        },
-        onError.bind(this, 'dst.getDirectory'));
-      },
-      onError.bind(this, 'dst.requestFileSystem'));
-    },
-    onError.bind(this, 'src.getDirectory'));
-  },
-  onError.bind(this, 'src.requestFileSystem'));
+  dst.requestFileSystem(function () {
+  dst.getDirectory(function (dstEntry) {
+  if (dstEntry === undefined) {
+    onError({name: 'Could not copy to undefined'});
+    return;
+  }
+
+  // If destination directory is not empty, Chrome cannot override it.
+  // So remove destination before copy.
+  dstEntry.getDirectory(srcEntry.name, {create: true}, function (targetEntry) {
+  console.log('Remove ' + targetEntry.fullPath);
+  targetEntry.removeRecursively(function () {
+
+  dst.getDirectory(function (dstEntry) {
+  if (dstEntry === undefined) {
+    onError({name: 'Could not copy to undefined'});
+    return;
+  }
+  console.log('Copy ' + srcEntry.fullPath + ' to ' + dstEntry.fullPath);
+  srcEntry.copyTo(dstEntry, null, onSuccess, onError);
+
+  }, onError);
+  }, onError);
+  }, onError);
+  }, onError);
+  }, onError);
+  }, onError);
+  }, onError);
 }
 
 
-function listDirectory(fileSystem, func) {
+function dirForEach(fileSystem, func) {
   fileSystem.requestFileSystem(function (fs) {
     fs.getDirectory(function (dirEntry) {
       var dirReader = dirEntry.createReader();
@@ -179,35 +178,35 @@ function listDirectory(fileSystem, func) {
 
 
 function remove(entry) {
-  console.log('Remove ' + entry.fullPath);
   if (entry.isFile) {
     entry.remove(function () {
-      console.log('File removed');
+      console.log('Remove file ' + entry.fullPath);
     }, onError);
   } else {
     entry.removeRecursively(function () {
-      console.log('Directory removed');
+      console.log('Remove directory ' + entry.fullPath);
     }, onError);
   }
 }
 
 
-function onError() {
-  console.log('copyDirectory: Failure');
+function onError(error) {
+  console.log('Error: ' + error.name);
+}
+
+
+function requestHtml5FileSystem(onFileSystem, onError) {
+  // TODO(clchiou): Pass quota (and other information) to NaCl module
+  var quota = 1024 * 1024 * 1024; // 1 GB
+
+  var requestFs = window.requestFileSystem || window.webkitRequestFileSystem;
+  requestFs(window.PERSISTENT, quota, onFileSystem, onError);
 }
 
 
 function main() {
   // TODO(clchiou): Let pepper.cpp and here read this path from a config file?
   var cDrivePath = '/c_drive';
-
-  // TODO(clchiou): Pass quota (and other information) to NaCl module
-  var quota = 1024 * 1024 * 1024; // 1 GB
-
-  function requestHtml5FileSystem(onFileSystem, onError) {
-    var requestFs = window.requestFileSystem || window.webkitRequestFileSystem;
-    requestFs(window.PRESISTENT, quota, onFileSystem, onError);
-  }
 
   function onSuccess() {
     console.log('copyDirectory: Success');
@@ -231,6 +230,8 @@ function main() {
       onError);
   });
 
+  // TODO(clchiou): We delete before upload. Would this generate huge network
+  // traffic?
   $('#upload').click(function () {
     console.log('Upload C Drive to Google Drive');
     copyDirectory(
@@ -241,7 +242,7 @@ function main() {
   });
 
   $('#remove').click(function () {
-    listDirectory(new Html5FileSystem(requestHtml5FileSystem, cDrivePath),
+    dirForEach(new Html5FileSystem(requestHtml5FileSystem, cDrivePath),
       remove);
   });
 
