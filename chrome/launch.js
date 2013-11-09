@@ -3,8 +3,8 @@
 chrome.app.runtime.onLaunched.addListener(function() {
   chrome.app.window.create('dosbox.html', {
     bounds: {
-      width: 1024,
-      height: 768
+      width:  640 + 20,
+      height: 400 + 20,
     }
   });
 });

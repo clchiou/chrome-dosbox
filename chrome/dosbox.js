@@ -14,9 +14,9 @@ function Module() {
       id: 'nacl-module',
       src: 'dosbox.nmf',
       type: 'application/x-nacl',
-      width: 1024,
-      height: 768,
-    }}).appendTo(container);
+      width:  640,
+      height: 400,
+    }}).addClass('nacl-module').appendTo(container);
   }
   self.load = load;
 
@@ -230,8 +230,8 @@ function main() {
       onError);
   });
 
-  // TODO(clchiou): We delete before upload. Would this generate huge network
-  // traffic?
+  // TODO(clchiou): We delete before upload. This generates huge network
+  // traffic.
   $('#upload').click(function () {
     console.log('Upload C Drive to Google Drive');
     copyDirectory(
@@ -247,6 +247,8 @@ function main() {
   });
 
   $('#start').click(function () {
+    $('.ui-element').hide();
+    $('body').addClass('dosbox');
     var module = new Module();
     module.load();
   });

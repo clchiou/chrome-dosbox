@@ -1,27 +1,45 @@
 /* Copyright (C) 2013 Che-Liang Chiou. */
 
 body {
+  margin: 0;
+}
+
+body.dosbox {
   background-color: #000000;
 }
 
-ul.toolbar {
+#caption {
+  margin-top: 60px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 80%;
+  font-size: 25pt;
+}
+
+.menu {
+  margin-top: 40px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 80%;
+}
+
+#start-menu {
   list-style-type: none;
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
 }
 
-.toolbar-item {
-  float: left;
-  width: 200px;
+a.menu-item {
+  font-size: 20pt;
 }
 
-.toolbar-content {
-  font-size: 11pt;
-  font-family: "Lucida Console", monospace;
-  color: #f8f8f8;
+li.menu-item {
+  margin-bottom: 10pt;
 }
 
-#status-item {
-  float: right;
+#nacl-module-container {
+  width: 100%;
+  height: 100%;
+}
+
+#nacl-module {
+  margin: 10px;
 }
