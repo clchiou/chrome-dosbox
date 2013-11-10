@@ -10,6 +10,7 @@ function Module() {
   function load() {
     container = $('#nacl-module-container')[0];
     container.addEventListener('load', onLoad, true);
+    container.addEventListener('message', onMessage, true);
     $('<embed/>', {attr: {
       id: 'nacl-module',
       src: 'dosbox.nmf',
@@ -20,9 +21,36 @@ function Module() {
   }
   self.load = load;
 
+  function unload() {
+    container.removeEventListener('load', onLoad, true);
+    container.removeEventListener('message', onMessage, true);
+    $('#nacl-module').remove();
+    container = null;
+    module = null;
+    if (self.onUnload) {
+      self.onUnload();
+    }
+  }
+  self.unload = unload;
+
   function onLoad() {
     module = $('#nacl-module');
     module.focus();
+  }
+
+  function onMessage(message) {
+    if (typeof message.data !== 'string') {
+      console.log('Message is not a string: message=' + message);
+      return;
+    }
+    console.log('message=' + message.data);
+    message = JSON.parse(message.data);
+    if (message.type === 'sys') {
+      if (message.action === 'quit') {
+        unload();
+        return;
+      }
+    }
   }
 
   return self;
@@ -204,6 +232,18 @@ function requestHtml5FileSystem(onFileSystem, onError) {
 }
 
 
+function showUi() {
+  $('.ui-element').show();
+  $('body').removeClass('dosbox');
+}
+
+
+function hideUi() {
+  $('.ui-element').hide();
+  $('body').addClass('dosbox');
+}
+
+
 function main() {
   // TODO(clchiou): Let pepper.cpp and here read this path from a config file?
   var cDrivePath = '/c_drive';
@@ -247,9 +287,9 @@ function main() {
   });
 
   $('#start').click(function () {
-    $('.ui-element').hide();
-    $('body').addClass('dosbox');
+    hideUi();
     var module = new Module();
+    module.onUnload = showUi;
     module.load();
   });
 

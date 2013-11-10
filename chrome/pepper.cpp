@@ -18,8 +18,11 @@
 #include <ppapi/cpp/instance.h>
 #include <ppapi/cpp/module.h>
 #include <ppapi/cpp/rect.h>
+#include <ppapi/cpp/var.h>
 
 #include <nacl_io/nacl_io.h>
+
+#include "message_queue.h"
 
 
 #define DEBUG "DEBUG"
@@ -44,15 +47,27 @@ class Instance : public pp::Instance {
   bool HandleInputEvent(const pp::InputEvent& event);
 
  private:
-  static void* Trampoline(void* self);
-  bool Main();
+  typedef bool (Instance::*MainFunction)();
 
-  static bool MakeDirectory(const char* path);
+  struct TrampolineBlob {
+    Instance* self_;
+    MainFunction main_;
+  };
 
-  pthread_t thread_;
+  static void* Trampoline(void* blob);
+
+  int LaunchThread(pthread_t* thread, MainFunction main);
+
+  bool MessageLoop();
+  pthread_t message_thread_;
+
+  bool SdlMain();
+  pthread_t sdl_thread_;
 
   int width_;
   int height_;
+
+  MessageQueue message_queue_;
 };
 
 
@@ -75,8 +90,12 @@ namespace pp {
 } // namespace pp
 
 
+static bool MakeDirectory(const char* path);
+
+
 Instance::Instance(PP_Instance instance)
-    : pp::Instance(instance), thread_(0), width_(0), height_(0) {
+    : pp::Instance(instance), message_thread_(0),
+      sdl_thread_(0), width_(0), height_(0) {
   LOG(INFO, "Construct instance");
   RequestInputEvents(PP_INPUTEVENT_CLASS_MOUSE);
   RequestFilteringInputEvents(PP_INPUTEVENT_CLASS_KEYBOARD);
@@ -84,14 +103,23 @@ Instance::Instance(PP_Instance instance)
 
 
 Instance::~Instance() {
-  if (thread_)
-    pthread_join(thread_, NULL);
+  if (message_thread_)
+    pthread_join(message_thread_, NULL);
+  if (sdl_thread_)
+    pthread_join(sdl_thread_, NULL);
 }
 
 
 bool Instance::Init(uint32_t argc, const char* argn[], const char* argv[]) {
   nacl_io_init_ppapi(pp_instance(),
                      pp::Module::Get()->get_browser_interface());
+
+  int err = LaunchThread(&message_thread_, &Instance::MessageLoop);
+  if (err) {
+    LOG(ERROR, "Could not create message_thread_: err=%d", err);
+    return false;
+  }
+
   return true;
 }
 
@@ -107,9 +135,9 @@ void Instance::DidChangeView(const pp::Rect& position, const pp::Rect& clip) {
   height_ = position.size().height();
 
   SDL_NACL_SetInstance(pp_instance(), width_, height_);
-  int err = pthread_create(&thread_, NULL, Trampoline, this);
+  int err = LaunchThread(&sdl_thread_, &Instance::SdlMain);
   if (err) {
-    LOG(ERROR, "Could not create thread: err=%d", err);
+    LOG(ERROR, "Could not create sdl_thread_: err=%d", err);
     return;
   }
 }
@@ -121,13 +149,44 @@ bool Instance::HandleInputEvent(const pp::InputEvent& event) {
 }
 
 
-void* Instance::Trampoline(void* self) {
-  static_cast<Instance*>(self)->Main();
+int Instance::LaunchThread(pthread_t* thread, MainFunction main) {
+  TrampolineBlob* blob = new TrampolineBlob();
+  blob->self_ = this;
+  blob->main_ = main;
+  return pthread_create(thread, NULL, Trampoline, blob);
+}
+
+
+void* Instance::Trampoline(void* blob) {
+  TrampolineBlob *b = static_cast<TrampolineBlob*>(blob);
+  (b->self_->*b->main_)();
+  delete b;
   return NULL;
 }
 
 
-bool Instance::Main() {
+bool Instance::MessageLoop() {
+  LOG(INFO, "Enter message loop");
+  Message message;
+  for (;;) {
+    message_queue_.pop(&message);
+    std::string type = message.get<std::string>("type", "");
+    if (type == "sys") {
+      std::string action = message.get<std::string>("action", "");
+      if (action == "quit") {
+        PostMessage(pp::Var(MessageToString(message)));
+        break;
+      }
+    }
+    std::string message_str = MessageToString(message);
+    LOG(WARN, "Could not parse message: %s", message_str.c_str());
+  }
+  LOG(INFO, "Quit message loop");
+  return true;
+}
+
+
+bool Instance::SdlMain() {
   LOG(INFO, "Mount file system");
   if (umount("/")) {
     LOG(ERROR, "Could not umount root directory: %s", strerror(errno));
@@ -160,19 +219,18 @@ bool Instance::Main() {
     assert(argc < sizeof(argv) / sizeof(argv[0]));
   }
 
-  LOG(DEBUG, "argc=%d", argc);
-  for (int i = 0; i < argc; i++) {
-    LOG(DEBUG, "argv[%d]=%s", i, argv[i]);
-  }
-  LOG(DEBUG, "argv[%d]=%p", argc, argv[argc]);
-
   int ret = SDL_main(argc, argv);
+  Message message;
+  message.put("type", "sys");
+  message.put("action", "quit");
+  message.put("value", ret);
+  message_queue_.add(message);
   LOG(ret ? ERROR : INFO, "SDL_main() returns %d", ret);
   return ret ? false : true;
 }
 
 
-bool Instance::MakeDirectory(const char* path) {
+static bool MakeDirectory(const char* path) {
   struct stat buf;
   if (!stat(path, &buf)) {
     if (!S_ISDIR(buf.st_mode)) {
