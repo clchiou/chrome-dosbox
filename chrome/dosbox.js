@@ -33,9 +33,14 @@ function Module() {
   }
   self.unload = unload;
 
+  function postMessage(message) {
+    module.postMessage(message);
+  }
+  self.postMessage = postMessage;
+
   function onLoad() {
-    module = $('#nacl-module');
-    module.focus();
+    $('#nacl-module').focus();
+    module = $('#nacl-module')[0];
   }
 
   function onMessage(message) {

@@ -22,16 +22,9 @@
 
 #include <nacl_io/nacl_io.h>
 
+#include "archive.h"
+#include "log.h"
 #include "message_queue.h"
-
-
-#define DEBUG "DEBUG"
-#define INFO  "INFO"
-#define WARN  "WARN"
-#define ERROR "ERROR"
-
-#define LOG(level, fmt, args...) fprintf(stderr, "%s:%s:%s:%d: " fmt "\n", \
-    level, __FILE__, __func__, __LINE__, ##args)
 
 
 class Instance : public pp::Instance {
@@ -42,9 +35,11 @@ class Instance : public pp::Instance {
 
   virtual bool Init(uint32_t argc, const char* argn[], const char* argv[]);
 
-  void DidChangeView(const pp::Rect& position, const pp::Rect& clip);
+  virtual void DidChangeView(const pp::Rect& position, const pp::Rect& clip);
 
-  bool HandleInputEvent(const pp::InputEvent& event);
+  virtual bool HandleInputEvent(const pp::InputEvent& event);
+
+  virtual void HandleMessage(const pp::Var& message);
 
  private:
   typedef bool (Instance::*MainFunction)();
@@ -149,6 +144,15 @@ bool Instance::HandleInputEvent(const pp::InputEvent& event) {
 }
 
 
+void Instance::HandleMessage(const pp::Var& message) {
+  if (!message.is_string()) {
+    LOG(ERROR, "Message is not a string");
+    return;
+  }
+  message_queue_.add(StringToMessage(message.AsString()));
+}
+
+
 int Instance::LaunchThread(pthread_t* thread, MainFunction main) {
   TrampolineBlob* blob = new TrampolineBlob();
   blob->self_ = this;
@@ -171,11 +175,43 @@ bool Instance::MessageLoop() {
   for (;;) {
     message_queue_.pop(&message);
     std::string type = message.get<std::string>("type", "");
+    std::string action = message.get<std::string>("action", "");
     if (type == "sys") {
-      std::string action = message.get<std::string>("action", "");
       if (action == "quit") {
+        LOG(INFO, "Quitting...");
         PostMessage(pp::Var(MessageToString(message)));
         break;
+      }
+    } else if (type == "app") {
+      if (action == "archive") {
+        std::string archive = message.get<std::string>("archive",
+            "/data/c_drive.tar.gz");
+        std::string rootpath = message.get<std::string>("rootpath",
+            "/data");
+        std::string srcdir = message.get<std::string>("srcdir",
+            "c_drive");
+        LOG(INFO, "Archive %s/%s to %s", rootpath.c_str(), srcdir.c_str(),
+            archive.c_str());
+        bool okay = Archive(archive, rootpath, srcdir);
+        Message response;
+        response.put("type", "ack");
+        response.put("action", "archive");
+        response.put("status", okay);
+        PostMessage(pp::Var(MessageToString(response)));
+        continue;
+      } else if (action == "extract") {
+        std::string archive = message.get<std::string>("archive",
+            "/data/c_drive.tar.gz");
+        std::string rootpath = message.get<std::string>("rootpath",
+            "/data");
+        LOG(INFO, "Extract %s to %s", archive.c_str(), rootpath.c_str());
+        bool okay = Extract(archive, rootpath);
+        Message response;
+        response.put("type", "ack");
+        response.put("action", "extract");
+        response.put("status", okay);
+        PostMessage(pp::Var(MessageToString(response)));
+        continue;
       }
     }
     std::string message_str = MessageToString(message);

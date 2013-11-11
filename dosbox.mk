@@ -23,14 +23,14 @@ DOSBOX_ROOT := dosbox
 BUILD_ROOT  := $(OUT)/dosbox-$(NACL_ARCH)
 DOSBOX_NEXE := $(BUILD_ROOT)/src/dosbox.nexe
 
-NACL_LIBS := boost png sdl zlib
+NACL_LIBS := boost png sdl tar zlib
 
 PPAPI_LIB := $(OUT)/obj/libppapi-$(NACL_ARCH).a
 export PPAPI_LIB
 
 # TODO(clchiou): Get this path from naclports/.../common.sh?
 HEADER := toolchain/linux_x86_newlib/$(NACL_ARCH)-nacl/usr/include
-CXXFLAGS := $(CXXFLAGS) -I$(NACLPORTS_ROOT)/$(HEADER)
+CXXFLAGS := $(CXXFLAGS) -I$(NACL_SDK_ROOT)/$(HEADER)
 export CXXFLAGS
 
 
