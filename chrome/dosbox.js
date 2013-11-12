@@ -83,44 +83,6 @@ function LocalFileSystem() {
 }
 
 
-// TODO(clchiou): Warn user that, to make this work, you have to enable
-//  chrome://flags/#enable-syncfs-directory-operation
-// flag.  And note that sync'ed data will be under another directory
-//  'Chrome Syncable FileSystem Dev'
-// instead of the normal
-//  'Chrome Syncable FileSystem'
-// directory.
-function SyncFileSystem(path) {
-  var self = this;
-
-  var fs = null;
-
-  function requestFileSystem(onFileSystem, onError) {
-    chrome.syncFileSystem.requestFileSystem(function (fs_) {
-      if (chrome.runtime.lastError) {
-        onError(chrome.runtime.lastError);
-        return;
-      }
-      fs = fs_;
-      onFileSystem(self);
-    });
-  }
-  self.requestFileSystem = requestFileSystem;
-
-  function getDirectory(onDirectory, onError) {
-    console.log('syncfs: path=' + path);
-    if (path === '/') {
-      onDirectory(fs.root);
-    } else {
-      fs.root.getDirectory(path, {create: true}, onDirectory, onError);
-    }
-  }
-  self.getDirectory = getDirectory;
-
-  return self;
-}
-
-
 function Html5FileSystem(requestFs, path) {
   var self = this;
 
@@ -191,6 +153,64 @@ function copyDirectory(src, dst, onSuccess, onError) {
 }
 
 
+// XXX: You cannot call getParent() on local file system entry; so copyTo()
+// would not work.  And you cannot directly write an entry to another file
+// system.
+function copyFile(srcEntry, dstEntry) {
+  console.log('Read ' + srcEntry.fullPath);
+  srcEntry.file(function (srcFile) {
+  var srcReader = new FileReader();
+  srcReader.onloadend = function() {
+
+  console.log('Write ' + dstEntry.fullPath);
+  dstEntry.createWriter(function (writer) {
+  writer.onwriteend = function () { console.log('copyFile: Success'); };
+  writer.onerror = onError;
+  // TODO(clchiou): Choose proper mime type for compressed file.
+  var blob = new Blob([srcReader.result], {type: 'application/octet-binary'});
+  writer.write(blob);
+
+  }, onError);
+  };
+  srcReader.onerror = onError;
+  srcReader.readAsArrayBuffer(srcFile);
+
+  }, onError);
+}
+
+
+function importCDriveArchive(cDriveArchive) {
+  console.log('Import C Drive');
+  chrome.fileSystem.chooseEntry({type: 'openFile'}, function (srcEntry) {
+  if (chrome.runtime.lastError) {
+    onError(chrome.runtime.lastError);
+    return;
+  }
+  requestHtml5FileSystem(function (fs) {
+  fs.root.getFile(cDriveArchive, {}, function (dstEntry) {
+  copyFile(srcEntry, dstEntry);
+  }, onError);
+  }, onError);
+  });
+}
+
+
+function exportCDriveArchive(cDriveArchive) {
+  console.log('Export C Drive');
+  requestHtml5FileSystem(function (fs) {
+  fs.root.getFile(cDriveArchive, {}, function (srcEntry) {
+  chrome.fileSystem.chooseEntry({type: 'saveFile'}, function (dstEntry) {
+  if (chrome.runtime.lastError) {
+    onError(chrome.runtime.lastError);
+    return;
+  }
+  copyFile(srcEntry, dstEntry);
+  });
+  }, onError);
+  }, onError);
+}
+
+
 function dirForEach(fileSystem, func) {
   fileSystem.requestFileSystem(function (fs) {
     fs.getDirectory(function (dirEntry) {
@@ -252,13 +272,14 @@ function hideUi() {
 function main() {
   // TODO(clchiou): Let pepper.cpp and here read this path from a config file?
   var cDrivePath = '/c_drive';
+  var cDriveArchive = '/c_drive.tar.gz';
 
   function onSuccess() {
     console.log('copyDirectory: Success');
   }
 
-  $('#import').click(function () {
-    console.log('Import Directory');
+  $('#copy').click(function () {
+    console.log('Copy Directory');
     copyDirectory(
       new LocalFileSystem(),
       new Html5FileSystem(requestHtml5FileSystem, cDrivePath),
@@ -266,24 +287,14 @@ function main() {
       onError);
   });
 
-  $('#download').click(function () {
-    console.log('Download C Drive from Google Drive');
-    copyDirectory(
-      new SyncFileSystem(cDrivePath),
-      new Html5FileSystem(requestHtml5FileSystem, '/'),
-      onSuccess,
-      onError);
+  $('#import').click(function () {
+    importCDriveArchive(cDriveArchive);
+    // TODO(clchiou): Extract archive.
   });
 
-  // TODO(clchiou): We delete before upload. This generates huge network
-  // traffic.
-  $('#upload').click(function () {
-    console.log('Upload C Drive to Google Drive');
-    copyDirectory(
-      new Html5FileSystem(requestHtml5FileSystem, cDrivePath),
-      new SyncFileSystem('/'),
-      onSuccess,
-      onError);
+  $('#export').click(function () {
+    // TODO(clchiou): Archive C drive.
+    exportCDriveArchive(cDriveArchive);
   });
 
   $('#remove').click(function () {
@@ -296,20 +307,6 @@ function main() {
     var module = new Module();
     module.onUnload = showUi;
     module.load();
-  });
-
-  chrome.syncFileSystem.onServiceStatusChanged.addListener(function (details) {
-    console.log('onServiceStatusChanged:' +
-      ' state=' + details.state +
-      ' description=' + details.description);
-  });
-
-  chrome.syncFileSystem.onFileStatusChanged.addListener(function (details) {
-    console.log('onFileStatusChanged:' +
-      ' name=' + details.fileEntry.name +
-      ' status=' + details.status +
-      ' action=' + details.action +
-      ' direction=' + details.direction);
   });
 }
 

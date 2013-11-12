@@ -11,7 +11,7 @@
     }
   },
   "permissions": [
-    {"fileSystem": ["directory"]},
+    {"fileSystem": ["directory", "write"]},
     "syncFileSystem",
     "unlimitedStorage"
   ]
