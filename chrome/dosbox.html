@@ -10,17 +10,15 @@ Copyright (C) 2013 Che-Liang Chiou.
     <link type="text/css" rel="stylesheet" href="dosbox.css">
   </head>
   <body>
-    <p id="caption" class="ui-element">Chrome Dosbox</p>
-    <div class="ui-element menu">
-      <ul id="start-menu">
-        <li class="menu-item"><a id="start" class="menu-item" href="#">Start Dosbox</a></li>
-        <li class="menu-item"><a id="copy" class="menu-item" href="#">Copy Directory to C Drive</a></li>
-        <li class="menu-item"><a id="import" class="menu-item" href="#">Import C Drive</a></li>
-        <li class="menu-item"><a id="export" class="menu-item" href="#">Export C Drive</a></li>
-        <li class="menu-item"><a id="remove" class="menu-item" href="#">Remove C Drive Data</a></li>
-      </ul>
-    </div>
     <div id="nacl-module-container"></div>
+    <div id="toolbar">
+      <a id="copy" class="button toolbar-item" href="#">Import Dir</a>
+      <a id="export" class="button toolbar-item" href="#">Export C:\</a>
+      <a id="remove" class="button toolbar-item" href="#">Clear C:\</a>
+      <a id="hide" class="button toolbar-item" href="#">Hide Toolbar</a>
+      <div id="status"></div>
+    </div>
+    <div id="show"><a class="show-style" href="#">?</a></div>
     <script src="jquery-2.0.3.min.js"></script>
     <script src="dosbox.js"></script>
   </body>

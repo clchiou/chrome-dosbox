@@ -15,8 +15,6 @@ function Module() {
       id: 'nacl-module',
       src: 'dosbox.nmf',
       type: 'application/x-nacl',
-      width:  640,
-      height: 400,
     }}).addClass('nacl-module').appendTo(container);
   }
   self.load = load;
@@ -112,7 +110,7 @@ function Html5FileSystem(requestFs, path) {
 }
 
 
-function copyDirectory(src, dst, onSuccess, onError) {
+function copyDirectory(src, dst, override, onSuccess, onError) {
   // XXX This is madness! We should not nest this deep!
 
   src.requestFileSystem(function () {
@@ -129,69 +127,33 @@ function copyDirectory(src, dst, onSuccess, onError) {
     return;
   }
 
-  // If destination directory is not empty, Chrome cannot override it.
-  // So remove destination before copy.
-  dstEntry.getDirectory(srcEntry.name, {create: true}, function (targetEntry) {
-  console.log('Remove ' + targetEntry.fullPath);
-  targetEntry.removeRecursively(function () {
+  if (override) {
+    // If destination directory is not empty, Chrome cannot override it.
+    // So remove destination before copy.
+    dstEntry.getDirectory(srcEntry.name, {}, function (targetEntry) {
+    console.log('Remove ' + targetEntry.fullPath);
+    targetEntry.removeRecursively(function () {
 
-  dst.getDirectory(function (dstEntry) {
-  if (dstEntry === undefined) {
-    onError({name: 'Could not copy to undefined'});
-    return;
+    dst.getDirectory(function (dstEntry) {
+    if (dstEntry === undefined) {
+      onError({name: 'Could not copy to undefined'});
+      return;
+    }
+    console.log('Copy ' + srcEntry.fullPath + ' to ' + dstEntry.fullPath);
+    srcEntry.copyTo(dstEntry, null, onSuccess, onError);
+
+    }, onError);
+    }, onError);
+    }, onError);
+  } else {
+    console.log('Copy ' + srcEntry.fullPath + ' to ' + dstEntry.fullPath);
+    srcEntry.copyTo(dstEntry, null, onSuccess, onError);
   }
-  console.log('Copy ' + srcEntry.fullPath + ' to ' + dstEntry.fullPath);
-  srcEntry.copyTo(dstEntry, null, onSuccess, onError);
 
   }, onError);
   }, onError);
   }, onError);
   }, onError);
-  }, onError);
-  }, onError);
-  }, onError);
-}
-
-
-// XXX: You cannot call getParent() on local file system entry; so copyTo()
-// would not work.  And you cannot directly write an entry to another file
-// system.
-function copyFile(srcEntry, dstEntry) {
-  console.log('Read ' + srcEntry.fullPath);
-  srcEntry.file(function (srcFile) {
-  var srcReader = new FileReader();
-  srcReader.onloadend = function() {
-
-  console.log('Write ' + dstEntry.fullPath);
-  dstEntry.createWriter(function (writer) {
-  writer.onwriteend = function () { console.log('copyFile: Success'); };
-  writer.onerror = onError;
-  // TODO(clchiou): Choose proper mime type for compressed file.
-  var blob = new Blob([srcReader.result], {type: 'application/octet-binary'});
-  writer.write(blob);
-
-  }, onError);
-  };
-  srcReader.onerror = onError;
-  srcReader.readAsArrayBuffer(srcFile);
-
-  }, onError);
-}
-
-
-function importCDriveArchive(cDriveArchive) {
-  console.log('Import C Drive');
-  chrome.fileSystem.chooseEntry({type: 'openFile'}, function (srcEntry) {
-  if (chrome.runtime.lastError) {
-    onError(chrome.runtime.lastError);
-    return;
-  }
-  requestHtml5FileSystem(function (fs) {
-  fs.root.getFile(cDriveArchive, {}, function (dstEntry) {
-  copyFile(srcEntry, dstEntry);
-  }, onError);
-  }, onError);
-  });
 }
 
 
@@ -213,19 +175,22 @@ function exportCDriveArchive(cDriveArchive) {
 
 function dirForEach(fileSystem, func) {
   fileSystem.requestFileSystem(function (fs) {
-    fs.getDirectory(function (dirEntry) {
-      var dirReader = dirEntry.createReader();
-      (function readEntries() {
-        dirReader.readEntries(function (results) {
-          if (results.length) {
-            for (var i = 0; i < results.length; i++) {
-              func(results[i]);
-            }
-            readEntries();
-          }
-        });
-      })();
+  fs.getDirectory(function (dirEntry) {
+  var dirReader = dirEntry.createReader();
+
+  function readEntries() {
+    dirReader.readEntries(function (results) {
+    if (results.length) {
+      for (var i = 0; i < results.length; i++) {
+        func(results[i]);
+      }
+      readEntries();
+    }
     });
+  }
+  readEntries();
+
+  });
   });
 }
 
@@ -243,11 +208,6 @@ function remove(entry) {
 }
 
 
-function onError(error) {
-  console.log('Error: ' + error.name);
-}
-
-
 function requestHtml5FileSystem(onFileSystem, onError) {
   // TODO(clchiou): Pass quota (and other information) to NaCl module
   var quota = 1024 * 1024 * 1024; // 1 GB
@@ -257,57 +217,76 @@ function requestHtml5FileSystem(onFileSystem, onError) {
 }
 
 
-function showUi() {
-  $('.ui-element').show();
-  $('body').removeClass('dosbox');
+function showStatus(message) {
+  $('#status').text(message).fadeOut(3000, function() {
+    $('#status').text('').show();
+  });
 }
 
 
-function hideUi() {
-  $('.ui-element').hide();
-  $('body').addClass('dosbox');
+function onError(error) {
+  console.log('Error: ' + error.name);
+  showStatus('Failed');
+}
+
+
+function exit() {
+  showStatus('Exit');
+  chrome.app.window.current().close();
 }
 
 
 function main() {
   // TODO(clchiou): Let pepper.cpp and here read this path from a config file?
   var cDrivePath = '/c_drive';
-  var cDriveArchive = '/c_drive.tar.gz';
 
   function onSuccess() {
     console.log('copyDirectory: Success');
+    showStatus('Success');
   }
 
   $('#copy').click(function () {
     console.log('Copy Directory');
+    showStatus('Copying...');
     copyDirectory(
       new LocalFileSystem(),
       new Html5FileSystem(requestHtml5FileSystem, cDrivePath),
+      true,
       onSuccess,
       onError);
   });
 
-  $('#import').click(function () {
-    importCDriveArchive(cDriveArchive);
-    // TODO(clchiou): Extract archive.
-  });
-
   $('#export').click(function () {
-    // TODO(clchiou): Archive C drive.
-    exportCDriveArchive(cDriveArchive);
+    console.log('Export C Drive');
+    copyDirectory(
+      new Html5FileSystem(requestHtml5FileSystem, cDrivePath),
+      new LocalFileSystem(),
+      false,
+      onSuccess,
+      onError);
   });
 
   $('#remove').click(function () {
+    showStatus('Removing...');
     dirForEach(new Html5FileSystem(requestHtml5FileSystem, cDrivePath),
       remove);
   });
 
-  $('#start').click(function () {
-    hideUi();
-    var module = new Module();
-    module.onUnload = showUi;
-    module.load();
+  $('#show').click(function () {
+    $('#show').hide('slow');
+    $('#toolbar').show('slow');
   });
+
+  $('#show').hide();
+
+  $('#hide').click(function () {
+    $('#show').show('slow');
+    $('#toolbar').slideUp('slow');
+  });
+
+  var module = new Module();
+  module.onUnload = exit;
+  module.load();
 }
 
 
