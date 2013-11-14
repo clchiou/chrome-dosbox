@@ -1,6 +1,7 @@
 {
-  "name": "Chrome Dosbox",
-  "description": "x86 emulator with DOS on Chrome",
+  "name": "DOSBox for Google Chrome™",
+  "short_name": "DOSBox",
+  "description": "x86 emulator with DOS for Google Chrome™",
   "version": "0.1.0",
   "manifest_version": 2,
   "minimum_chrome_version": "31",
@@ -20,6 +21,7 @@
     "24": "icons/dosbox-24.png",
     "32": "icons/dosbox-32.png",
     "48": "icons/dosbox-48.png",
+    "128": "icons/dosbox-icon.png",
     "256": "icons/dosbox-256.png"
   },
   "platforms": [
