@@ -9,7 +9,15 @@ DOSBOX_ROOT := dosbox
 
 PATCH := $(shell pwd)/dosbox.diff
 
-OUT_DIRS := $(OUT) $(OUT)/chrome-dosbox $(OUT)/chrome-dosbox/icons $(OUT)/obj
+OUT_DIRS := \
+	$(OUT) \
+	$(OUT)/chrome-dosbox \
+	$(OUT)/chrome-dosbox/icons \
+	$(OUT)/chrome-dosbox/_platform_specific \
+	$(OUT)/chrome-dosbox/_platform_specific/x86-64 \
+	$(OUT)/chrome-dosbox/_platform_specific/x86-32 \
+	$(OUT)/chrome-dosbox/_platform_specific/all \
+	$(OUT)/obj
 
 CHROME_APP := $(OUT)/chrome-dosbox.zip
 
@@ -21,10 +29,6 @@ APP_SRCS := $(subst chrome,$(OUT)/chrome-dosbox,\
 	$(wildcard chrome/*.html) \
 	$(wildcard chrome/*.js) \
 	$(wildcard chrome/*.map))
-
-DOSBOX_X86_64 := $(OUT)/chrome-dosbox/dosbox-x86_64.nexe
-DOSBOX_I686   := $(OUT)/chrome-dosbox/dosbox-i686.nexe
-DOSBOX := $(DOSBOX_X86_64) $(DOSBOX_I686)
 
 
 ### Top-level targets
@@ -41,7 +45,7 @@ clean:
 .PHONY: all patch clean
 
 
-$(CHROME_APP): $(APP_SRCS) $(DOSBOX)
+$(CHROME_APP): $(APP_SRCS) | build-dosbox
 	@echo Create $$(basename $(CHROME_APP))
 	cp icons/*.png $(OUT)/chrome-dosbox/icons
 	cd $(OUT); zip -r chrome-dosbox.zip chrome-dosbox
@@ -50,15 +54,13 @@ $(APP_SRCS) : $(OUT)/chrome-dosbox/% : chrome/% | $(OUT_DIRS)
 	@echo Copy chrome/$(<F)
 	cp -f $< $@
 
-$(DOSBOX_X86_64): force | $(DOSBOX_ROOT) $(OUT_DIRS)
-	@echo Build $$(basename $@)
-	NACL_ARCH=x86_64 $(MAKE) -f dosbox.mk $(DOSBOX_X86_64)
+build-dosbox: | $(DOSBOX_ROOT) $(OUT_DIRS)
+	@echo Build dosbox_x86-64
+	NACL_ARCH=x86_64 $(MAKE) -f dosbox.mk
+	@echo Build dosbox_x86-32
+	NACL_ARCH=i686   $(MAKE) -f dosbox.mk
 
-$(DOSBOX_I686):   force | $(DOSBOX_ROOT) $(OUT_DIRS)
-	@echo Build $$(basename $@)
-	NACL_ARCH=i686   $(MAKE) -f dosbox.mk $(DOSBOX_I686)
-
-.PHONY: force
+.PHONY: build-dosbox
 
 
 ifeq ($(REVISION),HEAD)

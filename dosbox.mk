@@ -15,9 +15,16 @@ endif
 
 NACL_ENV := $(NACLPORTS_ROOT)/src/build_tools/nacl_env.sh
 
-DOSBOX_X86_64 := $(OUT)/chrome-dosbox/dosbox-x86_64.nexe
-DOSBOX_I686   := $(OUT)/chrome-dosbox/dosbox-i686.nexe
-DOSBOX := $(DOSBOX_X86_64) $(DOSBOX_I686)
+ifeq ($(NACL_ARCH),x86_64)
+ARCH_NAME := x86-64
+endif
+ifeq ($(NACL_ARCH),i686)
+ARCH_NAME := x86-32
+endif
+
+OUTDIR := $(OUT)/chrome-dosbox/_platform_specific
+DOSBOX := $(OUTDIR)/$(ARCH_NAME)/dosbox_$(ARCH_NAME).nexe \
+	$(OUTDIR)/all/dosbox_$(ARCH_NAME).nexe
 
 DOSBOX_ROOT := dosbox
 BUILD_ROOT  := $(OUT)/dosbox-$(NACL_ARCH)
@@ -32,6 +39,11 @@ export PPAPI_LIB
 HEADER := toolchain/linux_x86_newlib/$(NACL_ARCH)-nacl/usr/include
 CXXFLAGS := $(CXXFLAGS) -I$(NACL_SDK_ROOT)/$(HEADER)
 export CXXFLAGS
+
+
+all: $(DOSBOX)
+
+.PHONY: all
 
 
 $(DOSBOX): $(DOSBOX_NEXE)

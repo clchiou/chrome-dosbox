@@ -1,6 +1,6 @@
 {
   "program": {
-    "x86-32": { "url": "dosbox-i686.nexe" },
-    "x86-64": { "url": "dosbox-x86_64.nexe" }
+    "x86-32": { "url": "_platform_specific/x86-32/dosbox_x86-32.nexe" },
+    "x86-64": { "url": "_platform_specific/x86-64/dosbox_x86-64.nexe" }
   }
 }
