@@ -1,7 +1,7 @@
 {
   "name": "Chrome Dosbox",
   "description": "x86 emulator with DOS on Chrome",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "manifest_version": 2,
   "minimum_chrome_version": "31",
   "offline_enabled": true,
