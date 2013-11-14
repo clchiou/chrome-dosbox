@@ -60,89 +60,64 @@ function Module() {
 }
 
 
-// TODO(clchiou): Warn user that he should not choose symlink; otherwise
-// Chrome will silently ignore it :(
-function LocalFileSystem() {
-  var self = this;
-
-  function requestFileSystem(onFileSystem, onError) {
-    onFileSystem(self);
-  }
-  self.requestFileSystem = requestFileSystem;
-
-  function getDirectory(onDirectory, onError) {
-    chrome.fileSystem.chooseEntry({
-      type: 'openDirectory',
-    }, onDirectory);
-  }
-  self.getDirectory = getDirectory;
-
-  return self;
-}
-
-
-function Html5FileSystem(requestFs, path) {
-  var self = this;
-
-  var fs = null;
-
-  function requestFileSystem(onFileSystem, onError) {
-    requestFs(function (fs_) {
-      fs = fs_;
-      console.log('html5fs: ' + fs.root.toURL());
-      onFileSystem(self);
-    },
-    onError);
-  }
-  self.requestFileSystem = requestFileSystem;
-
-  function getDirectory(onDirectory, onError) {
-    console.log('html5fs: path=' + path);
-    if (path === '/') {
-      onDirectory(fs.root);
-    } else {
-      fs.root.getDirectory(path, {create: true}, onDirectory, onError);
-    }
-  }
-  self.getDirectory = getDirectory;
-
-  return self;
-}
-
-
-function copyDirectory(src, dst, override, onSuccess, onError) {
-  // XXX This is madness! We should not nest this deep!
-
-  src.requestFileSystem(function () {
-  src.getDirectory(function (srcEntry) {
-  if (srcEntry === undefined) {
-    onError({name: 'Could not copy from undefined'});
-    return;
-  }
-
-  dst.requestFileSystem(function () {
-  dst.getDirectory(function (dstEntry) {
-  if (dstEntry === undefined) {
-    onError({name: 'Could not copy to undefined'});
-    return;
-  }
-
-  if (override) {
-    // If destination directory is not empty, Chrome cannot override it.
-    // So remove destination before copy.
-    dstEntry.getDirectory(srcEntry.name, {}, function (targetEntry) {
-    console.log('Remove ' + targetEntry.fullPath);
-    targetEntry.removeRecursively(function () {
-
-    dst.getDirectory(function (dstEntry) {
-    if (dstEntry === undefined) {
-      onError({name: 'Could not copy to undefined'});
+function getLocalDirectory(onDirectory, onError) {
+  chrome.fileSystem.chooseEntry({
+    type: 'openDirectory',
+  }, function (dirEntry) {
+    if (!dirEntry) {
+      onError({name: 'EntryUndefined'});
       return;
     }
+    onDirectory(dirEntry);
+  });
+}
+
+
+function makeGetHtml5Directory(requestFileSystem, path) {
+
+  function getHtml5Directory(onDirectory, onError) {
+
+    function onFileSystem(fs) {
+      if (path === '/') {
+        onDirectory(fs.root);
+      } else {
+        fs.root.getDirectory(path, {create: true}, onDirectory, onError);
+      }
+    }
+
+    requestFileSystem(onFileSystem, onError);
+  }
+
+  return getHtml5Directory;
+}
+
+
+function makeRequestHtml5FileSystem() {
+  // TODO(clchiou): Pass quota (and other information) to NaCl module
+  var quota = 1024 * 1024 * 1024; // 1 GB
+
+  var requestFs = window.requestFileSystem || window.webkitRequestFileSystem;
+
+  return function (onFileSystem, onError) {
+    requestFs(window.PERSISTENT, quota, onFileSystem, onError);
+  };
+}
+
+
+function copyDirectory(srcGetDir, dstGetDir, override, onSuccess, onError) {
+  srcGetDir(function (srcEntry) {
+  dstGetDir(function (dstEntry) {
+
+  if (override) {
+    // If destination directory is not empty, W3C spec says you cannot write
+    // to it; so remove destination before copy.
+    dstEntry.getDirectory(srcEntry.name, {create: true},
+    function (targetEntry) {
+    targetEntry.removeRecursively(function () {
+
     console.log('Copy ' + srcEntry.fullPath + ' to ' + dstEntry.fullPath);
     srcEntry.copyTo(dstEntry, null, onSuccess, onError);
 
-    }, onError);
     }, onError);
     }, onError);
   } else {
@@ -152,46 +127,37 @@ function copyDirectory(src, dst, override, onSuccess, onError) {
 
   }, onError);
   }, onError);
-  }, onError);
-  }, onError);
 }
 
 
-function exportCDriveArchive(cDriveArchive) {
-  console.log('Export C Drive');
-  requestHtml5FileSystem(function (fs) {
-  fs.root.getFile(cDriveArchive, {}, function (srcEntry) {
-  chrome.fileSystem.chooseEntry({type: 'saveFile'}, function (dstEntry) {
-  if (chrome.runtime.lastError) {
-    onError(chrome.runtime.lastError);
-    return;
-  }
-  copyFile(srcEntry, dstEntry);
-  });
-  }, onError);
-  }, onError);
-}
+function dirForEach(getDirectory, onEntry, onError) {
+  function onDirectory(dirEntry) {
+    var dirReader = dirEntry.createReader();
 
-
-function dirForEach(fileSystem, func) {
-  fileSystem.requestFileSystem(function (fs) {
-  fs.getDirectory(function (dirEntry) {
-  var dirReader = dirEntry.createReader();
-
-  function readEntries() {
-    dirReader.readEntries(function (results) {
-    if (results.length) {
-      for (var i = 0; i < results.length; i++) {
-        func(results[i]);
-      }
-      readEntries();
+    function readEntries() {
+      dirReader.readEntries(function (results) {
+        if (results.length) {
+          for (var i = 0; i < results.length; i++) {
+            onEntry(results[i]);
+          }
+          readEntries();
+        }
+      });
     }
-    });
-  }
-  readEntries();
 
-  });
-  });
+    readEntries();
+  }
+
+  getDirectory(onDirectory, onError);
+}
+
+
+// Useful for debugging
+function listDirectory(path) {
+  var getDirectory = makeGetHtml5Directory(makeRequestHtml5FileSystem(), path);
+  dirForEach(getDirectory, function (entry) {
+    console.log(entry.fullPath);
+  }, logError);
 }
 
 
@@ -199,34 +165,24 @@ function remove(entry) {
   if (entry.isFile) {
     entry.remove(function () {
       console.log('Remove file ' + entry.fullPath);
-    }, onError);
+    }, logError);
   } else {
     entry.removeRecursively(function () {
       console.log('Remove directory ' + entry.fullPath);
-    }, onError);
+    }, logError);
   }
 }
 
 
-function requestHtml5FileSystem(onFileSystem, onError) {
-  // TODO(clchiou): Pass quota (and other information) to NaCl module
-  var quota = 1024 * 1024 * 1024; // 1 GB
-
-  var requestFs = window.requestFileSystem || window.webkitRequestFileSystem;
-  requestFs(window.PERSISTENT, quota, onFileSystem, onError);
-}
-
-
-function showStatus(message) {
-  $('#status').text(message).fadeOut(3000, function() {
-    $('#status').text('').show();
-  });
-}
-
-
-function onError(error) {
+function logError(error) {
+  if (error.name == 'EntryUndefined') {
+    showStatus('Failed. Did you open a symlink?');
+  } else if (error.name == 'InvalidModificationError') {
+    showStatus('Failed. Could not override target.');
+  } else {
+    showStatus('Failed.');
+  }
   console.log('Error: ' + error.name);
-  showStatus('Failed');
 }
 
 
@@ -236,40 +192,39 @@ function exit() {
 }
 
 
+function showStatus(message) {
+  $('#status').text(message).fadeOut(8000, function() {
+    $('#status').text('').show();
+  });
+}
+
+
 function main() {
   // TODO(clchiou): Let pepper.cpp and here read this path from a config file?
   var cDrivePath = '/c_drive';
 
+  var getHtml5Directory = makeGetHtml5Directory(makeRequestHtml5FileSystem(),
+      cDrivePath);
+
   function onSuccess() {
-    console.log('copyDirectory: Success');
     showStatus('Success');
   }
 
   $('#copy').click(function () {
-    console.log('Copy Directory');
     showStatus('Copying...');
-    copyDirectory(
-      new LocalFileSystem(),
-      new Html5FileSystem(requestHtml5FileSystem, cDrivePath),
-      true,
-      onSuccess,
-      onError);
+    copyDirectory(getLocalDirectory, getHtml5Directory, true,
+      onSuccess, logError);
   });
 
   $('#export').click(function () {
-    console.log('Export C Drive');
-    copyDirectory(
-      new Html5FileSystem(requestHtml5FileSystem, cDrivePath),
-      new LocalFileSystem(),
-      false,
-      onSuccess,
-      onError);
+    showStatus('Exporting...');
+    copyDirectory(getHtml5Directory, getLocalDirectory, false,
+      onSuccess, logError);
   });
 
   $('#remove').click(function () {
     showStatus('Removing...');
-    dirForEach(new Html5FileSystem(requestHtml5FileSystem, cDrivePath),
-      remove);
+    dirForEach(getHtml5Directory, remove);
   });
 
   $('#show').click(function () {
