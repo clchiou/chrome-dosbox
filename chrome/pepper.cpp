@@ -22,7 +22,6 @@
 
 #include <nacl_io/nacl_io.h>
 
-#include "archive.h"
 #include "log.h"
 #include "message_queue.h"
 
@@ -181,37 +180,6 @@ bool Instance::MessageLoop() {
         LOG(INFO, "Quitting...");
         PostMessage(pp::Var(MessageToString(message)));
         break;
-      }
-    } else if (type == "app") {
-      if (action == "archive") {
-        std::string archive = message.get<std::string>("archive",
-            "/data/c_drive.tar.gz");
-        std::string rootpath = message.get<std::string>("rootpath",
-            "/data");
-        std::string srcdir = message.get<std::string>("srcdir",
-            "c_drive");
-        LOG(INFO, "Archive %s/%s to %s", rootpath.c_str(), srcdir.c_str(),
-            archive.c_str());
-        bool okay = Archive(archive, rootpath, srcdir);
-        Message response;
-        response.put("type", "ack");
-        response.put("action", "archive");
-        response.put("status", okay);
-        PostMessage(pp::Var(MessageToString(response)));
-        continue;
-      } else if (action == "extract") {
-        std::string archive = message.get<std::string>("archive",
-            "/data/c_drive.tar.gz");
-        std::string rootpath = message.get<std::string>("rootpath",
-            "/data");
-        LOG(INFO, "Extract %s to %s", archive.c_str(), rootpath.c_str());
-        bool okay = Extract(archive, rootpath);
-        Message response;
-        response.put("type", "ack");
-        response.put("action", "extract");
-        response.put("status", okay);
-        PostMessage(pp::Var(MessageToString(response)));
-        continue;
       }
     }
     std::string message_str = MessageToString(message);

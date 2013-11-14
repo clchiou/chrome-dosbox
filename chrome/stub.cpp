@@ -21,9 +21,4 @@ int ftime(struct timeb *tp) {
   return 0;
 }
 
-/* XXX: lstat(2) is not implemented; override it with stat(2) instead. */
-int lstat(const char *path, struct stat *buf) {
-  return stat(path, buf);
-}
-
 }

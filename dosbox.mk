@@ -23,7 +23,7 @@ DOSBOX_ROOT := dosbox
 BUILD_ROOT  := $(OUT)/dosbox-$(NACL_ARCH)
 DOSBOX_NEXE := $(BUILD_ROOT)/src/dosbox.nexe
 
-NACL_LIBS := boost png sdl tar zlib
+NACL_LIBS := boost png sdl zlib
 
 PPAPI_LIB := $(OUT)/obj/libppapi-$(NACL_ARCH).a
 export PPAPI_LIB

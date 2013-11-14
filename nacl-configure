@@ -20,7 +20,7 @@ function realpath() {
 export PACKAGE_NAME=dosbox-svn
 source ${NACLPORTS_ROOT}/src/build_tools/common.sh
 
-export LIBS="$(realpath ${PPAPI_LIB}) -lnacl_io -ltar"
+export LIBS="$(realpath ${PPAPI_LIB}) -lnacl_io"
 export LDFLAGS="$NACLPORTS_LDFLAGS"
 
 # TODO(clchiou): Do we still need this?
