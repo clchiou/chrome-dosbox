@@ -13,5 +13,12 @@
   "permissions": [
     {"fileSystem": ["directory", "write"]},
     "unlimitedStorage"
-  ]
+  ],
+  "icons": {
+    "16": "icons/dosbox-16.png",
+    "24": "icons/dosbox-24.png",
+    "32": "icons/dosbox-32.png",
+    "48": "icons/dosbox-48.png",
+    "256": "icons/dosbox-256.png"
+  }
 }

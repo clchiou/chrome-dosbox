@@ -9,7 +9,7 @@ DOSBOX_ROOT := dosbox
 
 PATCH := $(shell pwd)/dosbox.diff
 
-OUT_DIRS := $(OUT) $(OUT)/chrome-dosbox $(OUT)/obj
+OUT_DIRS := $(OUT) $(OUT)/chrome-dosbox $(OUT)/chrome-dosbox/icons $(OUT)/obj
 
 CHROME_APP := $(OUT)/chrome-dosbox.zip
 
@@ -43,6 +43,7 @@ clean:
 
 $(CHROME_APP): $(APP_SRCS) $(DOSBOX)
 	@echo Create $$(basename $(CHROME_APP))
+	cp icons/*.png $(OUT)/chrome-dosbox/icons
 	cd $(OUT); zip -r chrome-dosbox.zip chrome-dosbox
 
 $(APP_SRCS) : $(OUT)/chrome-dosbox/% : chrome/% | $(OUT_DIRS)
