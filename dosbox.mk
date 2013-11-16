@@ -21,6 +21,9 @@ endif
 ifeq ($(NACL_ARCH),i686)
 ARCH_NAME := x86-32
 endif
+ifeq ($(NACL_ARCH),arm)
+ARCH_NAME := arm
+endif
 
 OUTDIR := $(OUT)/chrome-dosbox/_platform_specific
 DOSBOX := $(OUTDIR)/$(ARCH_NAME)/dosbox_$(ARCH_NAME).nexe \
@@ -36,7 +39,12 @@ PPAPI_LIB := $(OUT)/obj/libppapi-$(NACL_ARCH).a
 export PPAPI_LIB
 
 # TODO(clchiou): Get this path from naclports/.../common.sh?
+ifeq ($(NACL_ARCH),arm)
+HEADER := toolchain/linux_arm_newlib/$(NACL_ARCH)-nacl/usr/include
+else
 HEADER := toolchain/linux_x86_newlib/$(NACL_ARCH)-nacl/usr/include
+endif
+
 CXXFLAGS := $(CXXFLAGS) -I$(NACL_SDK_ROOT)/$(HEADER)
 export CXXFLAGS
 
@@ -69,7 +77,7 @@ make-nacl-libs:
 	rm -rf $(NACLPORTS_ROOT)/src/out/stamp
 	$(MAKE) -C $(NACLPORTS_ROOT)/src $(NACL_LIBS)
 
-$(PPAPI_LIB): force
+$(PPAPI_LIB): force | make-nacl-libs
 	$(NACL_ENV) $(MAKE) -C chrome
 
 $(BUILD_ROOT)/Makefile: | $(BUILD_ROOT)

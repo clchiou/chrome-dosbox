@@ -16,6 +16,7 @@ OUT_DIRS := \
 	$(OUT)/chrome-dosbox/_platform_specific \
 	$(OUT)/chrome-dosbox/_platform_specific/x86-64 \
 	$(OUT)/chrome-dosbox/_platform_specific/x86-32 \
+	$(OUT)/chrome-dosbox/_platform_specific/arm \
 	$(OUT)/chrome-dosbox/_platform_specific/all \
 	$(OUT)/obj
 
@@ -59,6 +60,8 @@ build-dosbox: | $(DOSBOX_ROOT) $(OUT_DIRS)
 	NACL_ARCH=x86_64 $(MAKE) -f dosbox.mk
 	@echo Build dosbox_x86-32
 	NACL_ARCH=i686   $(MAKE) -f dosbox.mk
+	@echo Build dosbox_arm
+	NACL_ARCH=arm    $(MAKE) -f dosbox.mk
 
 .PHONY: build-dosbox
 
