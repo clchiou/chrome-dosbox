@@ -84,6 +84,8 @@ namespace pp {
 } // namespace pp
 
 
+static bool MountAndMakeDirectory(const char* root, const char* dirname);
+
 static bool MakeDirectory(const char* path);
 
 
@@ -180,6 +182,9 @@ bool Instance::MessageLoop() {
         LOG(INFO, "Quitting...");
         PostMessage(pp::Var(MessageToString(message)));
         break;
+      } else if (action == "log") {
+        PostMessage(pp::Var(MessageToString(message)));
+        continue;
       }
     }
     std::string message_str = MessageToString(message);
@@ -200,16 +205,19 @@ bool Instance::SdlMain() {
     LOG(ERROR, "Could not re-mount root directory: %s", strerror(errno));
     return false;
   }
-  // 1073741824 = 1 GB
-  const char* mount_data = "type=PERSISTENT,expected_size=1073741824";
-  if (mount("", "/data", "html5fs", 0, mount_data)) {
-    LOG(ERROR, "Could not mount /data: %s", strerror(errno));
-    return false;
-  }
-
-  if (!MakeDirectory("/data/c_drive")) {
-    LOG(ERROR, "Could not make directory /data/c_drive");
-    return false;
+  if (!MountAndMakeDirectory("/data", "c_drive")) {
+    // Okay, try making directories in memfs...
+    if (!MakeDirectory("/data"))
+      return false;
+    if (!MakeDirectory("/data/c_drive"))
+      return false;
+    LOG(INFO, "Use memfs for /data/c_drive");
+    Message message;
+    message.put("type", "sys");
+    message.put("action", "log");
+    message.put("level", "warning");
+    message.put("message", "Could not use html5fs; fall back to memfs.");
+    message_queue_.add(message);
   }
 
   LOG(INFO, "Call SDL_main()");
@@ -231,6 +239,29 @@ bool Instance::SdlMain() {
   message_queue_.add(message);
   LOG(ret ? ERROR : INFO, "SDL_main() returns %d", ret);
   return ret ? false : true;
+}
+
+
+static bool MountAndMakeDirectory(const char* root, const char* dirname) {
+  char mount_args[256];
+  snprintf(mount_args, sizeof(mount_args), "type=PERSISTENT,expected_size=%d",
+      1024 * 1024 * 1024);
+  if (mount("", root, "html5fs", 0, mount_args)) {
+    LOG(ERROR, "Could not mount %s: %s", root, strerror(errno));
+    return false;
+  }
+
+  char path[256];
+  snprintf(path, sizeof(path), "%s/%s", root, dirname);
+  if (!MakeDirectory(path)) {
+    LOG(ERROR, "Could not make directory %s", path);
+    if (umount(root)) {
+      LOG(ERROR, "Could not umount %s: %s", root, strerror(errno));
+    }
+    return false;
+  }
+
+  return true;
 }
 
 

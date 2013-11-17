@@ -52,6 +52,9 @@ function Module() {
       if (message.action === 'quit') {
         unload();
         return;
+      } else if (message.action === 'log') {
+        showStatus(message.level.toUpperCase() + ': ' + message.message);
+        return;
       }
     }
   }
