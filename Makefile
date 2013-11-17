@@ -37,13 +37,16 @@ APP_SRCS := $(subst chrome,$(OUT)/chrome-dosbox,\
 all: $(CHROME_APP) | $(DOSBOX_ROOT) $(OUT_DIRS)
 
 
+test:
+	make -C tests
+
 patch:
 	cd $(DOSBOX_ROOT) ; svn diff > $(PATCH)
 
 clean:
 	rm -rf $(DOSBOX_ROOT) $(OUT)
 
-.PHONY: all patch clean
+.PHONY: all test patch clean
 
 
 $(CHROME_APP): $(APP_SRCS) | build-dosbox

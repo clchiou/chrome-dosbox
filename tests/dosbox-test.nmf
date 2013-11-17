@@ -1,0 +1,7 @@
+{
+  "program": {
+    "x86-32": { "url": "dosbox_x86-32.nexe" },
+    "x86-64": { "url": "dosbox_x86-64.nexe" },
+    "arm":    { "url": "dosbox_arm.nexe" }
+  }
+}

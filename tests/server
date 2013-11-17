@@ -1,0 +1,5 @@
+#!/bin/bash
+# Copyright (C) 2013 Che-Liang Chiou.
+
+cd "$(dirname $0)/../out/tests"
+twistd -no web --path=.
