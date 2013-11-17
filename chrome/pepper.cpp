@@ -4,10 +4,7 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <string.h>
-#include <unistd.h>
 #include <sys/mount.h>
-#include <sys/stat.h>
-#include <sys/types.h>
 
 #include <SDL/SDL.h>
 #include <SDL/SDL_nacl.h>
@@ -22,6 +19,7 @@
 
 #include <nacl_io/nacl_io.h>
 
+#include "filesystem.h"
 #include "log.h"
 #include "message_queue.h"
 
@@ -85,8 +83,6 @@ namespace pp {
 
 
 static bool MountAndMakeDirectory(const char* root, const char* dirname);
-
-static bool MakeDirectory(const char* path);
 
 
 Instance::Instance(PP_Instance instance)
@@ -220,6 +216,14 @@ bool Instance::SdlMain() {
     message_queue_.add(message);
   }
 
+  // TODO(clchiou): Complete memfs feature.
+#if 0
+  if (!MakeDirectory("/mem"))
+    return false;
+  if (!CopyDirectory("/data/c_drive", "/mem"))
+    return false;
+#endif
+
   LOG(INFO, "Call SDL_main()");
   char args[] = "dosbox /data/c_drive";
   char* argv[3];
@@ -258,30 +262,6 @@ static bool MountAndMakeDirectory(const char* root, const char* dirname) {
     if (umount(root)) {
       LOG(ERROR, "Could not umount %s: %s", root, strerror(errno));
     }
-    return false;
-  }
-
-  return true;
-}
-
-
-static bool MakeDirectory(const char* path) {
-  struct stat buf;
-  if (!stat(path, &buf)) {
-    if (!S_ISDIR(buf.st_mode)) {
-      LOG(DEBUG, "It is not a directory: path=%s", path);
-    }
-    return S_ISDIR(buf.st_mode);
-  }
-
-  if (errno != ENOENT) {
-    LOG(DEBUG, "stat(): %s", strerror(errno));
-    return false;
-  }
-
-  mode_t mode = 0755;
-  if (mkdir(path, mode)) {
-    LOG(DEBUG, "mkdir(\"%s\", %04o): %s", path, mode, strerror(errno));
     return false;
   }
 

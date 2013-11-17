@@ -7,8 +7,8 @@
 
 #include <pthread.h>
 
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/json_parser.hpp>
+#include "boost/property_tree/ptree.hpp"
+#include "boost/property_tree/json_parser.hpp"
 
 
 typedef boost::property_tree::ptree Message;
