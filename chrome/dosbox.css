@@ -3,13 +3,13 @@
 body {
   margin: 0;
   background-color: #000000;
-  width: 660px;
-  height: 430px;
+  min-width: 660px;
+  min-height: 430px;
 }
 
 #nacl-module-container {
-  width: 660px;
-  height: 410px;
+  min-width: 660px;
+  min-height: 410px;
 }
 
 #nacl-module {
@@ -17,11 +17,13 @@ body {
   margin-bottom: 0px;
   margin-left: 10px;
   margin-right: 10px;
-  width: 640px;
-  height: 400px;
+  min-width: 640px;
+  min-height: 400px;
 }
 
 #toolbar {
+  position: absolute;
+  bottom: 0px;
   margin: 0px;
   height: 20px;
 }
