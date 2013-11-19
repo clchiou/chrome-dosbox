@@ -1,6 +1,14 @@
 // Copyright (C) 2013 Che-Liang Chiou.
 
 
+var WIDTH = 640;
+var HEIGHT = 400;
+var ASPECT_RATIO = WIDTH / HEIGHT;
+
+var X_MARGIN = 20;
+var Y_MARGIN = 30;
+
+
 function Module() {
   var self = this;
 
@@ -30,6 +38,17 @@ function Module() {
     }
   }
   self.unload = unload;
+
+  function size() {
+    var m = $('#nacl-module');
+    return {width: m.width(), height: m.height()};
+  }
+  self.size = size;
+
+  function setCss(size) {
+    $('#nacl-module').css(size);
+  }
+  self.setCss = setCss;
 
   function postMessage(message) {
     module.postMessage(message);
@@ -245,6 +264,41 @@ function main() {
   var module = new Module();
   module.onUnload = exit;
   module.load();
+
+  function onResize() {
+    // XXX: Unfortunately <body> element would not automatically enlarge itself
+    // to the window size (or do I miss some CSS attributes?), and thus the
+    // #nacl-module-container bounding box would be much smaller than the size
+    // of the window.  So don't use the size of #nacl-module-container on an
+    // resize event; use the window size instead.
+    var size = {width: $(window).width(), height: $(window).height()};
+    size.width -= X_MARGIN;
+    size.height -= Y_MARGIN;
+
+    var width = size.width;
+
+    // Honor aspect ratio.
+    if (size.width > ASPECT_RATIO * size.height) {
+      size.width = ASPECT_RATIO * size.height;
+    } else if (size.width / ASPECT_RATIO < size.height) {
+      size.height = size.width / ASPECT_RATIO;
+    }
+
+    // Check minimum size.
+    if (size.width < WIDTH || size.height < HEIGHT) {
+      size = {width: WIDTH, height: HEIGHT};
+    }
+
+    var orig = module.size();
+    if (size.width !== orig.width || size.height !== orig.height) {
+      module.setCss(size);
+    }
+
+    // Center the element.
+    module.setCss({'padding-left': (width - size.width) / 2});
+  }
+
+  $(window).resize(onResize);
 }
 
 

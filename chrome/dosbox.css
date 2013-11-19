@@ -8,15 +8,15 @@ body {
 }
 
 #nacl-module-container {
-  min-width: 660px;
-  min-height: 410px;
-}
-
-#nacl-module {
   margin-top: 10px;
   margin-bottom: 0px;
   margin-left: 10px;
   margin-right: 10px;
+  min-width: 640px;
+  min-height: 400px;
+}
+
+#nacl-module {
   min-width: 640px;
   min-height: 400px;
 }
