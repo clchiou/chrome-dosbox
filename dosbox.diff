@@ -1,6 +1,6 @@
 Index: src/ints/bios.cpp
 ===================================================================
---- src/ints/bios.cpp	(revision 3840)
+--- src/ints/bios.cpp	(revision 3850)
 +++ src/ints/bios.cpp	(working copy)
 @@ -490,11 +490,10 @@
  
@@ -30,7 +30,7 @@ Index: src/ints/bios.cpp
  
 Index: src/gui/sdl_mapper.cpp
 ===================================================================
---- src/gui/sdl_mapper.cpp	(revision 3840)
+--- src/gui/sdl_mapper.cpp	(revision 3850)
 +++ src/gui/sdl_mapper.cpp	(working copy)
 @@ -359,8 +359,13 @@
     expression will raise a compiler error if the condition is false.  */
@@ -68,9 +68,122 @@ Index: src/gui/sdl_mapper.cpp
  		sdlkey_map[0x61]=SDLK_UP;
 Index: src/gui/sdlmain.cpp
 ===================================================================
---- src/gui/sdlmain.cpp	(revision 3840)
+--- src/gui/sdlmain.cpp	(revision 3850)
 +++ src/gui/sdlmain.cpp	(working copy)
-@@ -1899,7 +1899,10 @@
+@@ -53,9 +53,15 @@
+ #define MAPPERFILE "mapper-" VERSION ".map"
+ //#define DISABLE_JOYSTICK
+ 
++#ifdef __native_client__
++#undef C_OPENGL
++#define C_OPENGL 1
++#endif
++
+ #if C_OPENGL
+ #include "SDL_opengl.h"
+ 
++#ifndef __native_client__
+ #ifndef APIENTRY
+ #define APIENTRY
+ #endif
+@@ -87,6 +93,7 @@
+ PFNGLBUFFERDATAARBPROC glBufferDataARB = NULL;
+ PFNGLMAPBUFFERARBPROC glMapBufferARB = NULL;
+ PFNGLUNMAPBUFFERARBPROC glUnmapBufferARB = NULL;
++#endif // __native_client__
+ 
+ #endif //C_OPENGL
+ 
+@@ -175,6 +182,10 @@
+ 	} desktop;
+ #if C_OPENGL
+ 	struct {
++#ifdef __native_client__
++		GLfloat tex_width;
++		GLfloat tex_height;
++#endif // __native_client__
+ 		Bitu pitch;
+ 		void * framebuf;
+ 		GLuint buffer;
+@@ -454,6 +465,26 @@
+ 	}
+ }
+ 
++#ifdef __native_client__
++static void GFX_BindTexture() {
++	glBindTexture(GL_TEXTURE_2D, sdl.opengl.texture);
++	glBegin(GL_QUADS);
++	// lower left
++	glTexCoord2f(0, sdl.opengl.tex_height);
++	glVertex2f(-1.0f,-1.0f);
++	// lower right
++	glTexCoord2f(sdl.opengl.tex_width, sdl.opengl.tex_height);
++	glVertex2f(1.0f, -1.0f);
++	// upper right
++	glTexCoord2f(sdl.opengl.tex_width, 0);
++	glVertex2f(1.0f, 1.0f);
++	// upper left
++	glTexCoord2f(0,0);
++	glVertex2f(-1.0f, 1.0f);
++	glEnd();
++}
++#endif // __native_client__
++
+ Bitu GFX_SetSize(Bitu width,Bitu height,Bitu flags,double scalex,double scaley,GFX_CallBack_t callback) {
+ 	if (sdl.updating)
+ 		GFX_EndUpdate( 0 );
+@@ -671,6 +702,11 @@
+ 		GLfloat tex_width=((GLfloat)(width)/(GLfloat)texsize);
+ 		GLfloat tex_height=((GLfloat)(height)/(GLfloat)texsize);
+ 
++#ifdef __native_client__
++		sdl.opengl.tex_width = tex_width;
++		sdl.opengl.tex_height = tex_height;
++#endif // __native_client__
++
+ 		if (glIsList(sdl.opengl.displaylist)) glDeleteLists(sdl.opengl.displaylist, 1);
+ 		sdl.opengl.displaylist = glGenLists(1);
+ 		glNewList(sdl.opengl.displaylist, GL_COMPILE);
+@@ -934,7 +970,11 @@
+ 					sdl.draw.width, sdl.draw.height, GL_BGRA_EXT,
+ 					GL_UNSIGNED_INT_8_8_8_8_REV, 0);
+ 			glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_EXT, 0);
++#ifdef __native_client__
++			GFX_BindTexture();
++#else
+ 			glCallList(sdl.opengl.displaylist);
++#endif // __native_client__
+ 			SDL_GL_SwapBuffers();
+ 		} else if (changedLines) {
+ 			Bitu y = 0, index = 0;
+@@ -952,7 +992,11 @@
+ 				}
+ 				index++;
+ 			}
++#ifdef __native_client__
++			GFX_BindTexture();
++#else
+ 			glCallList(sdl.opengl.displaylist);
++#endif // __native_client__
+ 			SDL_GL_SwapBuffers();
+ 		}
+ 		break;
+@@ -1242,12 +1286,14 @@
+ 	sdl.opengl.texture=0;
+ 	sdl.opengl.displaylist=0;
+ 	glGetIntegerv (GL_MAX_TEXTURE_SIZE, &sdl.opengl.max_texsize);
++#ifndef __native_client__
+ 	glGenBuffersARB = (PFNGLGENBUFFERSARBPROC)SDL_GL_GetProcAddress("glGenBuffersARB");
+ 	glBindBufferARB = (PFNGLBINDBUFFERARBPROC)SDL_GL_GetProcAddress("glBindBufferARB");
+ 	glDeleteBuffersARB = (PFNGLDELETEBUFFERSARBPROC)SDL_GL_GetProcAddress("glDeleteBuffersARB");
+ 	glBufferDataARB = (PFNGLBUFFERDATAARBPROC)SDL_GL_GetProcAddress("glBufferDataARB");
+ 	glMapBufferARB = (PFNGLMAPBUFFERARBPROC)SDL_GL_GetProcAddress("glMapBufferARB");
+ 	glUnmapBufferARB = (PFNGLUNMAPBUFFERARBPROC)SDL_GL_GetProcAddress("glUnmapBufferARB");
++#endif // __native_client__
+ 	const char * gl_ext = (const char *)glGetString (GL_EXTENSIONS);
+ 	if(gl_ext && *gl_ext){
+ 		sdl.opengl.packed_pixel=(strstr(gl_ext,"EXT_packed_pixels") > 0);
+@@ -1899,7 +1945,10 @@
  	 */
  	putenv(const_cast<char*>("SDL_DISABLE_LOCK_KEYS=1"));
  #endif
@@ -84,7 +197,7 @@ Index: src/gui/sdlmain.cpp
  	sdl.inited = true;
 Index: src/cpu/core_dyn_x86/risc_x86.h
 ===================================================================
---- src/cpu/core_dyn_x86/risc_x86.h	(revision 3840)
+--- src/cpu/core_dyn_x86/risc_x86.h	(revision 3850)
 +++ src/cpu/core_dyn_x86/risc_x86.h	(working copy)
 @@ -133,7 +133,11 @@
  		"pushl %%ebp						\n"
@@ -100,7 +213,7 @@ Index: src/cpu/core_dyn_x86/risc_x86.h
  		:"=a" (retval), "=c" (tempflags)
 Index: src/cpu/cpu.cpp
 ===================================================================
---- src/cpu/cpu.cpp	(revision 3840)
+--- src/cpu/cpu.cpp	(revision 3850)
 +++ src/cpu/cpu.cpp	(working copy)
 @@ -22,7 +22,9 @@
  #include <stddef.h>
