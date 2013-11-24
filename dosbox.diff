@@ -1,3 +1,26 @@
+Index: src/misc/cross.cpp
+===================================================================
+--- src/misc/cross.cpp	(revision 3850)
++++ src/misc/cross.cpp	(working copy)
+@@ -61,6 +61,8 @@
+ #elif defined(MACOSX)
+ 	in = "~/Library/Preferences";
+ 	ResolveHomedir(in);
++#elif defined(__native_client__)
++	in = "/config";
+ #else
+ 	in = "~/.dosbox";
+ 	ResolveHomedir(in);
+@@ -88,6 +90,9 @@
+ 	in = "~/Library/Preferences/";
+ 	ResolveHomedir(in);
+ 	//Don't create it. Assume it exists
++#elif defined(__native_client__)
++	in = "/config";
++	mkdir(in.c_str(),0700);
+ #else
+ 	in = "~/.dosbox";
+ 	ResolveHomedir(in);
 Index: src/ints/bios.cpp
 ===================================================================
 --- src/ints/bios.cpp	(revision 3850)

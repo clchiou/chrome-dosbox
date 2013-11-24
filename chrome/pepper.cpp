@@ -224,6 +224,18 @@ bool Instance::SdlMain() {
     return false;
 #endif
 
+  // Create and write config file.
+  if (MakeDirectory("/config")) {
+    FILE* config = fopen("/config/dosbox-SVN.conf", "w");
+    if (config) {
+      fprintf(config,
+          // Section SDL.
+          "[sdl]\n"
+          "output=opengl\n");
+      fclose(config);
+    }
+  }
+
   LOG(INFO, "Call SDL_main()");
   char args[] = "dosbox /data/c_drive";
   char* argv[3];
