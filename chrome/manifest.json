@@ -2,7 +2,7 @@
   "name": "DOSBox for Google Chrome™",
   "short_name": "DOSBox",
   "description": "x86 emulator with DOS for Google Chrome™",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "manifest_version": 2,
   "minimum_chrome_version": "31",
   "offline_enabled": true,
