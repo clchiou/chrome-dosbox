@@ -128,7 +128,31 @@ Index: src/gui/sdlmain.cpp
  		Bitu pitch;
  		void * framebuf;
  		GLuint buffer;
-@@ -454,6 +465,26 @@
+@@ -403,6 +414,7 @@
+ static SDL_Surface * GFX_SetupSurfaceScaled(Bit32u sdl_flags, Bit32u bpp) {
+ 	Bit16u fixedWidth;
+ 	Bit16u fixedHeight;
++	static bool set_video_mode_once;
+ 
+ 	if (sdl.desktop.fullscreen) {
+ 		fixedWidth = sdl.desktop.full.fixed ? sdl.desktop.full.width : 0;
+@@ -439,7 +451,14 @@
+ 		sdl.clip.x=0;sdl.clip.y=0;
+ 		sdl.clip.w=(Bit16u)(sdl.draw.width*sdl.draw.scalex);
+ 		sdl.clip.h=(Bit16u)(sdl.draw.height*sdl.draw.scaley);
+-		sdl.surface=SDL_SetVideoMode(sdl.clip.w,sdl.clip.h,bpp,sdl_flags);
++		if (!set_video_mode_once) {
++			// TODO(clchiou): Figure out why if we call
++			//   SDL_SetVideoMode
++			// more than once here (or anywhere?), we will have
++			// no display.
++			sdl.surface=SDL_SetVideoMode(sdl.clip.w,sdl.clip.h,bpp,sdl_flags);
++			set_video_mode_once = true;
++		}
+ 		return sdl.surface;
+ 	}
+ }
+@@ -454,6 +473,26 @@
  	}
  }
  
@@ -155,7 +179,7 @@ Index: src/gui/sdlmain.cpp
  Bitu GFX_SetSize(Bitu width,Bitu height,Bitu flags,double scalex,double scaley,GFX_CallBack_t callback) {
  	if (sdl.updating)
  		GFX_EndUpdate( 0 );
-@@ -671,6 +702,11 @@
+@@ -671,6 +710,11 @@
  		GLfloat tex_width=((GLfloat)(width)/(GLfloat)texsize);
  		GLfloat tex_height=((GLfloat)(height)/(GLfloat)texsize);
  
@@ -167,7 +191,7 @@ Index: src/gui/sdlmain.cpp
  		if (glIsList(sdl.opengl.displaylist)) glDeleteLists(sdl.opengl.displaylist, 1);
  		sdl.opengl.displaylist = glGenLists(1);
  		glNewList(sdl.opengl.displaylist, GL_COMPILE);
-@@ -934,7 +970,11 @@
+@@ -934,7 +978,11 @@
  					sdl.draw.width, sdl.draw.height, GL_BGRA_EXT,
  					GL_UNSIGNED_INT_8_8_8_8_REV, 0);
  			glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_EXT, 0);
@@ -179,7 +203,7 @@ Index: src/gui/sdlmain.cpp
  			SDL_GL_SwapBuffers();
  		} else if (changedLines) {
  			Bitu y = 0, index = 0;
-@@ -952,7 +992,11 @@
+@@ -952,7 +1000,11 @@
  				}
  				index++;
  			}
@@ -191,7 +215,7 @@ Index: src/gui/sdlmain.cpp
  			SDL_GL_SwapBuffers();
  		}
  		break;
-@@ -1242,12 +1286,14 @@
+@@ -1242,12 +1294,14 @@
  	sdl.opengl.texture=0;
  	sdl.opengl.displaylist=0;
  	glGetIntegerv (GL_MAX_TEXTURE_SIZE, &sdl.opengl.max_texsize);
@@ -206,7 +230,7 @@ Index: src/gui/sdlmain.cpp
  	const char * gl_ext = (const char *)glGetString (GL_EXTENSIONS);
  	if(gl_ext && *gl_ext){
  		sdl.opengl.packed_pixel=(strstr(gl_ext,"EXT_packed_pixels") > 0);
-@@ -1899,7 +1945,10 @@
+@@ -1899,7 +1953,10 @@
  	 */
  	putenv(const_cast<char*>("SDL_DISABLE_LOCK_KEYS=1"));
  #endif
