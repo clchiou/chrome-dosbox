@@ -21,28 +21,21 @@ body {
   min-height: 400px;
 }
 
-#toolbar {
-  position: absolute;
-  bottom: 0px;
-  margin: 0px;
-  height: 20px;
-}
-
 #status {
   position: absolute;
-  right: 10px;
+  left: 10px;
   bottom: 0px;
   font-size: 16px;
   color: #ffd700;
 }
 
-#show {
+#config {
   position: absolute;
   right: 10px;
   bottom: 2px;
 }
 
-.show-style {
+.config-style {
   font-size: 14px;
   color: #ffd700;
 }
@@ -53,11 +46,4 @@ a {
 
 a.button:hover {
   background-color: #0000ff;
-}
-
-.toolbar-item {
-  padding-left: 10px;
-  padding-right: 10px;
-  font-size: 13px;
-  color: #c0c0c0;
 }

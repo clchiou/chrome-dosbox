@@ -1,0 +1,14 @@
+/* Copyright (C) 2014 Che-Liang Chiou. */
+
+#status {
+  position: absolute;
+  right: 0px;
+  bottom: 0px;
+  font-size: 16px;
+  color: #ffffff;
+  background-color: #ff0000;
+}
+
+.config-item {
+  font-size: 13px;
+}

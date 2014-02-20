@@ -26,7 +26,6 @@ APP_SRCS := $(subst chrome,$(OUT)/chrome-dosbox,\
 	chrome/dosbox.nmf \
 	chrome/manifest.json \
 	$(wildcard chrome/*.css) \
-	$(wildcard chrome/*.dart) \
 	$(wildcard chrome/*.html) \
 	$(wildcard chrome/*.js) \
 	$(wildcard chrome/*.map))
