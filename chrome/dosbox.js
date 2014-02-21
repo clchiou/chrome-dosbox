@@ -97,6 +97,20 @@ function showStatus(message) {
 
 
 function main() {
+  chrome.storage.local.get({'firstTimeUse': true}, function (items) {
+    console.log('firstTimeUse=' + items.firstTimeUse);
+    $('#hint').dialog({
+      autoOpen: items.firstTimeUse,
+      buttons: [{
+        text: "Don't show this hint again",
+        click: function() {
+          $(this).dialog('close');
+          chrome.storage.local.set({'firstTimeUse': false});
+        }
+      }]
+    });
+  });
+
   showStatus('Loading DOSBox...');
   var module = new Module();
   module.onUnload = exit;

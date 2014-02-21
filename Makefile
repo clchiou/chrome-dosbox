@@ -30,6 +30,8 @@ APP_SRCS := $(subst chrome,$(OUT)/chrome-dosbox,\
 	$(wildcard chrome/*.js) \
 	$(wildcard chrome/*.map))
 
+ASSETS := $(subst chrome,$(OUT)/chrome-dosbox,chrome/css)
+
 
 ### Top-level targets
 
@@ -48,7 +50,7 @@ clean:
 .PHONY: all test patch clean
 
 
-$(CHROME_APP): $(APP_SRCS) | build-dosbox
+$(CHROME_APP): $(APP_SRCS) $(ASSETS) | build-dosbox
 	@echo Create $$(basename $(CHROME_APP))
 	cp icons/*.png $(OUT)/chrome-dosbox/icons
 	cd $(OUT); zip -r chrome-dosbox.zip chrome-dosbox
@@ -56,6 +58,10 @@ $(CHROME_APP): $(APP_SRCS) | build-dosbox
 $(APP_SRCS) : $(OUT)/chrome-dosbox/% : chrome/% | $(OUT_DIRS)
 	@echo Copy chrome/$(<F)
 	cp -f $< $@
+
+$(ASSETS) : $(OUT)/chrome-dosbox/% : chrome/% | $(OUT_DIRS)
+	@echo Sync chrome/$(<F)
+	rsync --archive --delete $</ $@
 
 build-dosbox: | $(DOSBOX_ROOT) $(OUT_DIRS)
 	@echo Build dosbox_x86-64
