@@ -139,6 +139,7 @@ function showStatus(message) {
 function main() {
   // TODO(clchiou): Let pepper.cpp and here read this path from a config file?
   var cDrivePath = '/c_drive';
+  var cDriveMountPath = '/data/c_drive';
 
   var getHtml5Directory = makeGetHtml5Directory(makeRequestHtml5FileSystem(),
       cDrivePath);
@@ -165,6 +166,33 @@ function main() {
   $('#remove').click(function () {
     showStatus('Clearing...');
     dirForEach(getHtml5Directory, remove, onSuccess, logError);
+  });
+
+  var argsDefault = 'dosbox ' + cDriveMountPath;
+  var configDefault = (
+      '# DOSBox configuration file\n' +
+      '[sdl]\n' +
+      'output=opengl\n');
+  chrome.storage.sync.get({
+    args: argsDefault,
+    config: configDefault,
+  }, function (items) {
+    $('#args-value')[0].value = items.args;
+    $('#config-value')[0].value = items.config;
+  });
+  $('#args-set').button().click(function () {
+    chrome.storage.sync.set({args: $('#args-value')[0].value});
+  });
+  $('#args-reset').button().click(function () {
+    $('#args-value')[0].value = argsDefault;
+    chrome.storage.sync.set({args: argsDefault});
+  });
+  $('#config-set').button().click(function () {
+    chrome.storage.sync.set({config: $('#config-value')[0].value});
+  });
+  $('#config-reset').button().click(function () {
+    $('#config-value')[0].value = configDefault;
+    chrome.storage.sync.set({config: configDefault});
   });
 }
 

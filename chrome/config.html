@@ -7,6 +7,7 @@ Copyright (C) 2014 Che-Liang Chiou.
     <meta charset="utf-8">
     <title>Chrome DOSBox Config</title>
     <link type="text/css" rel="stylesheet" href="config.css">
+    <link type="text/css" rel="stylesheet" href="css/smoothness/jquery-ui-1.10.4.custom.css">
   </head>
   <body>
     <h3>Disk Space Management</h3>
@@ -15,8 +16,21 @@ Copyright (C) 2014 Che-Liang Chiou.
       <li><a id="export" class="config-item" href="#">Export C:\ drive</a>
       <li><a id="remove" class="config-item" href="#">Clear C:\ drive contents</a>
     </ul>
+    <h3>Command Line Arguments</h3>
+    <textarea id="args-value" rows="1" cols="80"></textarea>
+    <p>
+    <button id="args-set">Store</button>
+    <button id="args-reset">Restore to Default</button>
+    </p>
+    <h3>Configuration File</h3>
+    <textarea id="config-value" rows="20" cols="80"></textarea>
+    <p>
+    <button id="config-set">Store</button>
+    <button id="config-reset">Restore to Default</button>
+    </p>
     <div id="status"></div>
     <script src="jquery-2.0.3.min.js"></script>
+    <script src="jquery-ui-1.10.4.custom.min.js"></script>
     <script src="config.js"></script>
   </body>
 </html>

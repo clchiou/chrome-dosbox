@@ -96,16 +96,25 @@ function showStatus(message) {
 }
 
 
+function makeDictionary(key, value) {
+  var dict = {};
+  dict[key] = value;
+  return dict;
+}
+
+
 function main() {
-  chrome.storage.local.get({'firstTimeUse': true}, function (items) {
-    console.log('firstTimeUse=' + items.firstTimeUse);
+  var firstTimeUseKey = 'first-time-use-0.1.3';
+  chrome.storage.local.get(makeDictionary(firstTimeUseKey, true),
+  function (items) {
+    console.log('firstTimeUse=' + items[firstTimeUseKey]);
     $('#hint').dialog({
-      autoOpen: items.firstTimeUse,
+      autoOpen: items[firstTimeUseKey],
       buttons: [{
         text: "Don't show this hint again",
         click: function() {
           $(this).dialog('close');
-          chrome.storage.local.set({'firstTimeUse': false});
+          chrome.storage.local.set(makeDictionary(firstTimeUseKey, false));
         }
       }]
     });
@@ -119,8 +128,8 @@ function main() {
   $('#config').click(function () {
     chrome.app.window.create('config.html', {
       bounds: {
-        width:  800,
-        height: 600,
+        width:  700,
+        height: 700,
       }
     });
   });
