@@ -1,0 +1,3 @@
+[submodule "naclports"]
+	path = naclports
+	url = https://github.com/clchiou/naclports.git

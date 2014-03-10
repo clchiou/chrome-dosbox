@@ -3,24 +3,24 @@
 OUT ?= $(shell pwd)/out
 export OUT
 
-REPOSITORY := svn://svn.code.sf.net/p/dosbox/code-0/dosbox/trunk
-REVISION ?= HEAD
-DOSBOX_ROOT := dosbox
-
-PATCH := $(shell pwd)/dosbox.diff
-
 OUT_DIRS := \
 	$(OUT) \
 	$(OUT)/chrome-dosbox \
-	$(OUT)/chrome-dosbox/icons \
 	$(OUT)/chrome-dosbox/_platform_specific \
 	$(OUT)/chrome-dosbox/_platform_specific/x86-64 \
 	$(OUT)/chrome-dosbox/_platform_specific/x86-32 \
 	$(OUT)/chrome-dosbox/_platform_specific/arm \
-	$(OUT)/chrome-dosbox/_platform_specific/all \
-	$(OUT)/obj
+	$(OUT)/chrome-dosbox/_platform_specific/all
 
 CHROME_APP := $(OUT)/chrome-dosbox.zip
+
+DOSBOX := \
+	$(OUT)/chrome-dosbox/_platform_specific/x86-64/dosbox_x86-64.nexe \
+	$(OUT)/chrome-dosbox/_platform_specific/x86-32/dosbox_x86-32.nexe \
+	$(OUT)/chrome-dosbox/_platform_specific/arm/dosbox_arm.nexe \
+	$(OUT)/chrome-dosbox/_platform_specific/all/dosbox_x86-64.nexe \
+	$(OUT)/chrome-dosbox/_platform_specific/all/dosbox_x86-32.nexe \
+	$(OUT)/chrome-dosbox/_platform_specific/all/dosbox_arm.nexe
 
 APP_SRCS := $(subst chrome,$(OUT)/chrome-dosbox,\
 	chrome/dosbox.nmf \
@@ -30,59 +30,47 @@ APP_SRCS := $(subst chrome,$(OUT)/chrome-dosbox,\
 	$(wildcard chrome/*.js) \
 	$(wildcard chrome/*.map))
 
-ASSETS := $(subst chrome,$(OUT)/chrome-dosbox,chrome/css)
+PEPPER_MODULE_SRCS := $(wildcard chrome/*.cpp) $(wildcard chrome/*.h)
+
+# Absolute path of chrome/ directory
+CHROME_DOSBOX_SRC_DIR := $(shell pwd)/chrome
 
 
 ### Top-level targets
 
-all: $(CHROME_APP) | $(DOSBOX_ROOT) $(OUT_DIRS)
+all: $(CHROME_APP) | $(OUT_DIRS)
 
 
 test:
 	make -C tests
 
-patch:
-	cd $(DOSBOX_ROOT) ; svn diff > $(PATCH)
-
 clean:
-	rm -rf $(DOSBOX_ROOT) $(OUT)
+	rm -rf $(OUT)
 
-.PHONY: all test patch clean
+.PHONY: all test clean
 
 
-$(CHROME_APP): $(APP_SRCS) $(ASSETS) | build-dosbox
+### Build rules
+
+$(CHROME_APP): $(APP_SRCS) $(DOSBOX)
 	@echo Create $$(basename $(CHROME_APP))
-	cp icons/*.png $(OUT)/chrome-dosbox/icons
+	rsync --archive --delete icons $(OUT)/chrome-dosbox
+	rsync --archive --delete chrome/css $(OUT)/chrome-dosbox
 	cd $(OUT); zip -r chrome-dosbox.zip chrome-dosbox
 
 $(APP_SRCS) : $(OUT)/chrome-dosbox/% : chrome/% | $(OUT_DIRS)
 	@echo Copy chrome/$(<F)
 	cp -f $< $@
 
-$(ASSETS) : $(OUT)/chrome-dosbox/% : chrome/% | $(OUT_DIRS)
-	@echo Sync chrome/$(<F)
-	rsync --archive --delete $</ $@
-
-build-dosbox: | $(DOSBOX_ROOT) $(OUT_DIRS)
-	@echo Build dosbox_x86-64
-	NACL_ARCH=x86_64 $(MAKE) -f dosbox.mk
-	@echo Build dosbox_x86-32
-	NACL_ARCH=i686   $(MAKE) -f dosbox.mk
-	@echo Build dosbox_arm
-	NACL_ARCH=arm    $(MAKE) -f dosbox.mk
-
-.PHONY: build-dosbox
-
-
-ifeq ($(REVISION),HEAD)
-REPO_URL_REV := $(REPOSITORY)
-else
-REPO_URL_REV := $(REPOSITORY)@$(REVISION)
-endif
-
-$(DOSBOX_ROOT):
-	svn checkout $(REPO_URL_REV) $(DOSBOX_ROOT)
-	cd $(DOSBOX_ROOT) ; patch -p0 < $(PATCH) ; ./autogen.sh
+$(DOSBOX): $(PEPPER_MODULE_SRCS)
+	# HACK: Remove sentinel of chrome-dosbox to start a rebuild
+	if [ -d naclports/out/sentinels ]; then \
+		find naclports/out/sentinels -name chrome-dosbox -delete; \
+	fi
+	cd naclports; \
+	CHROME_DOSBOX_SRC_DIR=$(CHROME_DOSBOX_SRC_DIR) \
+	CHROME_DOSBOX_INSTALL_DIR=$(OUT)/chrome-dosbox/_platform_specific \
+	./make_all.sh dosbox-svn
 
 $(OUT_DIRS):
 	mkdir -p $@

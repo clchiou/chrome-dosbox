@@ -126,7 +126,10 @@ void Instance::DidChangeView(const pp::Rect& position, const pp::Rect& clip) {
   width_ = position.size().width();
   height_ = position.size().height();
 
-  SDL_NACL_SetInstance(pp_instance(), width_, height_);
+  SDL_NACL_SetInstance(pp_instance(),
+                       pp::Module::Get()->get_browser_interface(),
+                       width_,
+                       height_);
   int err = LaunchThread(&sdl_thread_, &Instance::SdlMain);
   if (err) {
     LOG(ERROR, "Could not create sdl_thread_: err=%d", err);
@@ -136,7 +139,7 @@ void Instance::DidChangeView(const pp::Rect& position, const pp::Rect& clip) {
 
 
 bool Instance::HandleInputEvent(const pp::InputEvent& event) {
-  SDL_NACL_PushEvent(event);
+  SDL_NACL_PushEvent(event.pp_resource());
   return true;
 }
 

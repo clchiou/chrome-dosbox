@@ -1,30 +1,34 @@
 # Copyright (C) 2013 Che-Liang Chiou.
 
-ifndef NACL_ARCH
-$(error NACL_ARCH is not defined)
+ifeq ($(wildcard config.mk),)
+SRC_DIR := .
+BUILD_DIR := .
+DEST_DIR := .
+else
+include config.mk
 endif
 
-ifndef PPAPI_LIB
-$(error PPAPI_LIB is not defined)
-endif
+MODULE_LIB := $(BUILD_DIR)/libchromedosbox.a
 
-ifndef OUT
-$(error OUT is not defined)
-endif
+OBJS := $(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%.o,\
+	$(wildcard $(SRC_DIR)/*.cpp))
 
 
-NACL_OBJS := $(patsubst %.cpp,$(OUT)/obj/%-$(NACL_ARCH).o,$(wildcard *.cpp))
+all: $(MODULE_LIB)
 
 
-all: $(PPAPI_LIB)
+install: $(MODULE_LIB)
+	install -m 644 $(MODULE_LIB) $(DEST_DIR)/lib
+
+.PHONY: all install
 
 
-$(PPAPI_LIB): $(NACL_OBJS)
+$(MODULE_LIB): $(OBJS)
 	$(AR) cr $@ $^
+	# HACK: Remove sentinel of dosbox-svn to start a rebuild
+	if [ -f "$(DOSBOX_SVN_SENTINEL)" ]; then \
+		rm -f $(DOSBOX_SVN_SENTINEL); \
+	fi
 
-$(NACL_OBJS) : $(OUT)/obj/%-$(NACL_ARCH).o : %.cpp
-	@echo Compile chrome/$$(basename $<)
-	$(CXX) $(CFLAGS) $(CXXFLAGS) -c -o $@ $<
-
-
-.PHONY: all
+$(OBJS) : $(BUILD_DIR)/%.o : $(SRC_DIR)/%.cpp
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
