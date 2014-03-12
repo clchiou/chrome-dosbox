@@ -45,6 +45,7 @@ test:
 	make -C tests
 
 clean:
+	$(MAKE) -C naclports clean
 	rm -rf $(OUT)
 
 .PHONY: all test clean
