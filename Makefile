@@ -30,7 +30,7 @@ APP_SRCS := $(subst chrome,$(OUT)/chrome-dosbox,\
 	$(wildcard chrome/*.js) \
 	$(wildcard chrome/*.map))
 
-PEPPER_MODULE_SRCS := $(wildcard chrome/*.cpp) $(wildcard chrome/*.h)
+PEPPER_MODULE_SRCS := $(wildcard chrome/*.cc) $(wildcard chrome/*.h)
 
 # Absolute path of chrome/ directory
 CHROME_DOSBOX_SRC_DIR := $(shell pwd)/chrome

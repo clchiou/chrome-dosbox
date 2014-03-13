@@ -10,8 +10,7 @@ endif
 
 MODULE_LIB := $(BUILD_DIR)/libchromedosbox.a
 
-OBJS := $(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%.o,\
-	$(wildcard $(SRC_DIR)/*.cpp))
+OBJS := $(patsubst $(SRC_DIR)/%.cc,$(BUILD_DIR)/%.o,$(wildcard $(SRC_DIR)/*.cc))
 
 
 all: $(MODULE_LIB)
@@ -30,5 +29,5 @@ $(MODULE_LIB): $(OBJS)
 		rm -f $(DOSBOX_SVN_SENTINEL); \
 	fi
 
-$(OBJS) : $(BUILD_DIR)/%.o : $(SRC_DIR)/%.cpp
+$(OBJS) : $(BUILD_DIR)/%.o : $(SRC_DIR)/%.cc
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
