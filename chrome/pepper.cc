@@ -1,5 +1,10 @@
 // Copyright (C) 2013 Che-Liang Chiou.
 
+#include <algorithm>
+#include <cctype>
+#include <vector>
+
+#include <assert.h>
 #include <errno.h>
 #include <pthread.h>
 #include <stdio.h>
@@ -19,9 +24,17 @@
 
 #include <nacl_io/nacl_io.h>
 
+#include "count_down_latch.h"
 #include "filesystem.h"
 #include "log.h"
 #include "message_queue.h"
+
+const char* const DEFAULT_ARGS = "dosbox /data/c_drive";
+
+const char* const DEFAULT_CONFIG =
+    "# DOSBox configuration file\n"
+    "[sdl]\n"
+    "output=opengl\n";
 
 class Instance : public pp::Instance {
  public:
@@ -50,10 +63,21 @@ class Instance : public pp::Instance {
   int LaunchThread(pthread_t* thread, MainFunction main);
 
   bool MessageLoop();
+  bool HandleSysMessage(const Message& message);
+  bool HandleAppMessage(const Message& message);
   pthread_t message_thread_;
+  bool exit_;
 
   bool SdlMain();
   pthread_t sdl_thread_;
+  std::string args_;
+  std::string config_;
+
+  // Block on two events before running dosbox's main():
+  // 1. DidChangeView is called.
+  // 2. Receive "start" message from Javascript.
+  static const int LATCH_VALUE = 2;
+  CountDownLatch latch_;
 
   int width_;
   int height_;
@@ -78,12 +102,19 @@ Module* CreateModule() {
 }
 }  // namespace pp
 
+static void ParseArgs(const std::string& args, int* argc, char*** argv);
+static void ReleaseArgs(int argc, char** argv);
+
 static bool MountAndMakeDirectory(const char* root, const char* dirname);
 
 Instance::Instance(PP_Instance instance)
     : pp::Instance(instance),
       message_thread_(0),
+      exit_(false),
       sdl_thread_(0),
+      args_(DEFAULT_ARGS),
+      config_(DEFAULT_CONFIG),
+      latch_(LATCH_VALUE),
       width_(0),
       height_(0) {
   LOG(INFO, "Construct instance");
@@ -101,9 +132,15 @@ Instance::~Instance() {
 bool Instance::Init(uint32_t argc, const char* argn[], const char* argv[]) {
   nacl_io_init_ppapi(pp_instance(), pp::Module::Get()->get_browser_interface());
 
-  int err = LaunchThread(&message_thread_, &Instance::MessageLoop);
+  int err;
+  err = LaunchThread(&message_thread_, &Instance::MessageLoop);
   if (err) {
     LOG(ERROR, "Could not create message_thread_: err=%d", err);
+    return false;
+  }
+  err = LaunchThread(&sdl_thread_, &Instance::SdlMain);
+  if (err) {
+    LOG(ERROR, "Could not create sdl_thread_: err=%d", err);
     return false;
   }
 
@@ -124,11 +161,8 @@ void Instance::DidChangeView(const pp::Rect& position, const pp::Rect& clip) {
                        pp::Module::Get()->get_browser_interface(),
                        width_,
                        height_);
-  int err = LaunchThread(&sdl_thread_, &Instance::SdlMain);
-  if (err) {
-    LOG(ERROR, "Could not create sdl_thread_: err=%d", err);
-    return;
-  }
+
+  latch_.CountDown();
 }
 
 bool Instance::HandleInputEvent(const pp::InputEvent& event) {
@@ -141,7 +175,7 @@ void Instance::HandleMessage(const pp::Var& message) {
     LOG(ERROR, "Message is not a string");
     return;
   }
-  message_queue_.add(StringToMessage(message.AsString()));
+  message_queue_.Add(StringToMessage(message.AsString()));
 }
 
 int Instance::LaunchThread(pthread_t* thread, MainFunction main) {
@@ -161,19 +195,14 @@ void* Instance::Trampoline(void* blob) {
 bool Instance::MessageLoop() {
   LOG(INFO, "Enter message loop");
   Message message;
-  for (;;) {
-    message_queue_.pop(&message);
+  while (!exit_) {
+    message_queue_.Pop(&message);
     std::string type = message.get<std::string>("type", "");
-    std::string action = message.get<std::string>("action", "");
-    if (type == "sys") {
-      if (action == "quit") {
-        LOG(INFO, "Quitting...");
-        PostMessage(pp::Var(MessageToString(message)));
-        break;
-      } else if (action == "log") {
-        PostMessage(pp::Var(MessageToString(message)));
-        continue;
-      }
+    if (type == "sys" && HandleSysMessage(message)) {
+      continue;
+    }
+    if (type == "app" && HandleAppMessage(message)) {
+      continue;
     }
     std::string message_str = MessageToString(message);
     LOG(WARN, "Could not parse message: %s", message_str.c_str());
@@ -182,7 +211,44 @@ bool Instance::MessageLoop() {
   return true;
 }
 
+bool Instance::HandleSysMessage(const Message& message) {
+  std::string action = message.get<std::string>("action", "");
+  if (action == "quit") {
+    LOG(INFO, "Quitting...");
+    PostMessage(pp::Var(MessageToString(message)));
+    exit_ = true;
+  } else if (action == "log") {
+    PostMessage(pp::Var(MessageToString(message)));
+  } else {
+    return false;
+  }
+  return true;
+}
+
+bool Instance::HandleAppMessage(const Message& message) {
+  std::string action = message.get<std::string>("action", "");
+  if (action == "start") {
+    LOG(INFO, "Starting...");
+    latch_.CountDown();
+  } else if (action == "args") {
+    std::string value = message.get<std::string>("value", "");
+    LOG(INFO, "args=\"%s\" new_args=\"%s\"", args_.c_str(), value.c_str());
+    args_ = value;
+  } else if (action == "config") {
+    std::string value = message.get<std::string>("value", "");
+    LOG(INFO, "config=<<EOF\n%s\nEOF", config_.c_str());
+    LOG(INFO, "new_config=<<EOF\n%s\nEOF", value.c_str());
+    config_ = value;
+  } else {
+    return false;
+  }
+  return true;
+}
+
 bool Instance::SdlMain() {
+  LOG(INFO, "Awaiting latch...");
+  latch_.Await();
+
   LOG(INFO, "Mount file system");
   if (umount("/")) {
     LOG(ERROR, "Could not umount root directory: %s", strerror(errno));
@@ -204,7 +270,7 @@ bool Instance::SdlMain() {
     message.put("action", "log");
     message.put("level", "warning");
     message.put("message", "Could not use html5fs; fall back to memfs.");
-    message_queue_.add(message);
+    message_queue_.Add(message);
   }
 
 // TODO(clchiou): Complete memfs feature.
@@ -219,33 +285,74 @@ bool Instance::SdlMain() {
   if (MakeDirectory("/config")) {
     FILE* config = fopen("/config/dosbox-SVN.conf", "w");
     if (config) {
-      fprintf(config,
-              // Section SDL.
-              "[sdl]\n"
-              "output=opengl\n");
+      fprintf(config, config_.c_str());
       fclose(config);
     }
   }
 
-  LOG(INFO, "Call SDL_main()");
-  char args[] = "dosbox /data/c_drive";
-  char* argv[3];
-  int argc = 0;
-  char* str = args;
-  while (argv[argc] = strtok(str, " ")) {
-    str = NULL;
-    argc++;
-    assert(argc < sizeof(argv) / sizeof(argv[0]));
+  int argc;
+  char** argv;
+  ParseArgs(args_, &argc, &argv);
+  LOG(INFO, "main(): argc=%d", argc);
+  for (int i = 0; i < argc; i++) {
+    LOG(INFO, "  argv[%d]=\"%s\"", i, argv[i]);
   }
 
   int ret = SDL_main(argc, argv);
+  ReleaseArgs(argc, argv);
   Message message;
   message.put("type", "sys");
   message.put("action", "quit");
   message.put("value", ret);
-  message_queue_.add(message);
-  LOG(ret ? ERROR : INFO, "SDL_main() returns %d", ret);
+  message_queue_.Add(message);
+  LOG(ret ? ERROR : INFO, "main() returns %d", ret);
   return ret ? false : true;
+}
+
+static void ParseArgs(const std::string& args, int* argc, char*** argv) {
+  std::vector<char*> arguments;
+  const char* p = args.c_str();
+  while (*p) {
+    while (*p && isspace(*p)) {
+      p++;
+    }
+    if (!*p) {
+      break;
+    }
+    const char* q = p;
+    char quote = '\0';
+    while (*q) {
+      if (quote) {
+        if (*q == quote && (q == p || q[-1] != '\\')) {
+          quote = '\0';  // End of quotation.
+        }
+      } else if (*q == '\'' || *q == '"') {
+        quote = *q;  // Start of quotation.
+      } else if (isspace(*q)) {
+        break;
+      }
+      q++;
+    }
+    if (p != q) {
+      char* arg = new char[q - p + 1];
+      strncpy(arg, p, q - p);
+      arg[q - p] = '\0';
+      arguments.push_back(arg);
+    }
+    p = q;
+  }
+  arguments.push_back(NULL);
+
+  *argv = new char* [arguments.size()];
+  *argc = arguments.size() - 1;  // Exclude the last NULL.
+  std::copy(arguments.begin(), arguments.end(), *argv);
+}
+
+static void ReleaseArgs(int argc, char** argv) {
+  for (int i = 0; i < argc; i++) {
+    delete[] argv[i];
+  }
+  delete[] argv;
 }
 
 static bool MountAndMakeDirectory(const char* root, const char* dirname) {

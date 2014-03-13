@@ -58,7 +58,26 @@ function Module() {
   function onLoad() {
     $('#nacl-module').focus();
     module = $('#nacl-module')[0];
-    showStatus('DOSBox loaded');
+    // Set command-line args and config.
+    chrome.storage.sync.get({
+      args: '', config: ''
+    }, function (items) {
+      if (items.args) {
+        module.postMessage(JSON.stringify({
+          type: 'app', action: 'args', value: items.args,
+        }));
+      }
+      if (items.config) {
+        module.postMessage(JSON.stringify({
+          type: 'app', action: 'config', value: items.config,
+        }));
+      }
+      // Launch DOSBox.
+      module.postMessage(JSON.stringify({
+        type: 'app', action: 'start',
+      }));
+      showStatus('DOSBox loaded');
+    });
   }
 
   function onMessage(message) {

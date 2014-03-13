@@ -21,8 +21,8 @@ class MessageQueue {
   MessageQueue();
   ~MessageQueue();
 
-  void add(const Message& message);
-  void pop(Message* message);
+  void Add(const Message& message);
+  void Pop(Message* message);
 
  private:
   pthread_mutex_t lock_;
