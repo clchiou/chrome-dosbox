@@ -9,16 +9,15 @@ extern "C" {
 #include <sys/timeb.h>
 #include <sys/types.h>
 
-char *dirname(char *path) {
+char* dirname(char* path) {
   fprintf(stderr, "ERROR: %s is not implemented\n", __func__);
   assert(0);
   return NULL;
 }
 
-int ftime(struct timeb *tp) {
+int ftime(struct timeb* tp) {
   fprintf(stderr, "ERROR: %s is not implemented\n", __func__);
   assert(0);
   return 0;
 }
-
 }

@@ -23,7 +23,6 @@
 #include "log.h"
 #include "message_queue.h"
 
-
 class Instance : public pp::Instance {
  public:
   explicit Instance(PP_Instance instance);
@@ -62,7 +61,6 @@ class Instance : public pp::Instance {
   MessageQueue message_queue_;
 };
 
-
 class Module : public pp::Module {
  public:
   Module() : pp::Module() {}
@@ -73,26 +71,25 @@ class Module : public pp::Module {
   }
 };
 
-
 namespace pp {
-  Module* CreateModule() {
-    LOG(INFO, "Create module");
-    return new ::Module();
-  }
-} // namespace pp
-
+Module* CreateModule() {
+  LOG(INFO, "Create module");
+  return new ::Module();
+}
+}  // namespace pp
 
 static bool MountAndMakeDirectory(const char* root, const char* dirname);
 
-
 Instance::Instance(PP_Instance instance)
-    : pp::Instance(instance), message_thread_(0),
-      sdl_thread_(0), width_(0), height_(0) {
+    : pp::Instance(instance),
+      message_thread_(0),
+      sdl_thread_(0),
+      width_(0),
+      height_(0) {
   LOG(INFO, "Construct instance");
   RequestInputEvents(PP_INPUTEVENT_CLASS_MOUSE);
   RequestFilteringInputEvents(PP_INPUTEVENT_CLASS_KEYBOARD);
 }
-
 
 Instance::~Instance() {
   if (message_thread_)
@@ -101,10 +98,8 @@ Instance::~Instance() {
     pthread_join(sdl_thread_, NULL);
 }
 
-
 bool Instance::Init(uint32_t argc, const char* argn[], const char* argv[]) {
-  nacl_io_init_ppapi(pp_instance(),
-                     pp::Module::Get()->get_browser_interface());
+  nacl_io_init_ppapi(pp_instance(), pp::Module::Get()->get_browser_interface());
 
   int err = LaunchThread(&message_thread_, &Instance::MessageLoop);
   if (err) {
@@ -115,13 +110,12 @@ bool Instance::Init(uint32_t argc, const char* argn[], const char* argv[]) {
   return true;
 }
 
-
 void Instance::DidChangeView(const pp::Rect& position, const pp::Rect& clip) {
   if (width_ && height_)
     return;
 
   if (position.size().width() == width_ && position.size().height() == height_)
-    return; // Size didn't change, no need to update anything.
+    return;  // Size didn't change, no need to update anything.
 
   width_ = position.size().width();
   height_ = position.size().height();
@@ -137,12 +131,10 @@ void Instance::DidChangeView(const pp::Rect& position, const pp::Rect& clip) {
   }
 }
 
-
 bool Instance::HandleInputEvent(const pp::InputEvent& event) {
   SDL_NACL_PushEvent(event.pp_resource());
   return true;
 }
-
 
 void Instance::HandleMessage(const pp::Var& message) {
   if (!message.is_string()) {
@@ -152,7 +144,6 @@ void Instance::HandleMessage(const pp::Var& message) {
   message_queue_.add(StringToMessage(message.AsString()));
 }
 
-
 int Instance::LaunchThread(pthread_t* thread, MainFunction main) {
   TrampolineBlob* blob = new TrampolineBlob();
   blob->self_ = this;
@@ -160,14 +151,12 @@ int Instance::LaunchThread(pthread_t* thread, MainFunction main) {
   return pthread_create(thread, NULL, Trampoline, blob);
 }
 
-
 void* Instance::Trampoline(void* blob) {
-  TrampolineBlob *b = static_cast<TrampolineBlob*>(blob);
+  TrampolineBlob* b = static_cast<TrampolineBlob*>(blob);
   (b->self_->*b->main_)();
   delete b;
   return NULL;
 }
-
 
 bool Instance::MessageLoop() {
   LOG(INFO, "Enter message loop");
@@ -192,7 +181,6 @@ bool Instance::MessageLoop() {
   LOG(INFO, "Quit message loop");
   return true;
 }
-
 
 bool Instance::SdlMain() {
   LOG(INFO, "Mount file system");
@@ -219,7 +207,7 @@ bool Instance::SdlMain() {
     message_queue_.add(message);
   }
 
-  // TODO(clchiou): Complete memfs feature.
+// TODO(clchiou): Complete memfs feature.
 #if 0
   if (!MakeDirectory("/mem"))
     return false;
@@ -232,9 +220,9 @@ bool Instance::SdlMain() {
     FILE* config = fopen("/config/dosbox-SVN.conf", "w");
     if (config) {
       fprintf(config,
-          // Section SDL.
-          "[sdl]\n"
-          "output=opengl\n");
+              // Section SDL.
+              "[sdl]\n"
+              "output=opengl\n");
       fclose(config);
     }
   }
@@ -260,11 +248,12 @@ bool Instance::SdlMain() {
   return ret ? false : true;
 }
 
-
 static bool MountAndMakeDirectory(const char* root, const char* dirname) {
   char mount_args[256];
-  snprintf(mount_args, sizeof(mount_args), "type=PERSISTENT,expected_size=%d",
-      1024 * 1024 * 1024);
+  snprintf(mount_args,
+           sizeof(mount_args),
+           "type=PERSISTENT,expected_size=%d",
+           1024 * 1024 * 1024);
   if (mount("", root, "html5fs", 0, mount_args)) {
     LOG(ERROR, "Could not mount %s: %s", root, strerror(errno));
     return false;

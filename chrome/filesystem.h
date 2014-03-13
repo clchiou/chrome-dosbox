@@ -5,9 +5,8 @@
 
 // It is unfortunate that we cannot use boost::filesystem.
 
-
 bool MakeDirectory(const char* path);
 
 bool CopyDirectory(const char* src, const char* parent);
 
-#endif // FILESYSTEM_H_
+#endif  // FILESYSTEM_H_

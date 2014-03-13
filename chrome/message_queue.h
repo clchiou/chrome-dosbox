@@ -10,13 +10,11 @@
 #include "boost/property_tree/ptree.hpp"
 #include "boost/property_tree/json_parser.hpp"
 
-
 typedef boost::property_tree::ptree Message;
 
 Message StringToMessage(const std::string& json);
 
 std::string MessageToString(const Message& message);
-
 
 class MessageQueue {
  public:
@@ -32,5 +30,4 @@ class MessageQueue {
   std::deque<Message> queue_;
 };
 
-
-#endif // MESSAGE_QUEUE_H_
+#endif  // MESSAGE_QUEUE_H_

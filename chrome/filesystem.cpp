@@ -13,7 +13,6 @@
 
 #include "log.h"
 
-
 static char* basename_unsafe(const char* path);
 
 static char* dirname_unsafe(const char* path);
@@ -27,7 +26,6 @@ static bool isdir(const char* path);
 static bool CopyDirectoryContents(const char* src, const char* dst);
 
 static bool CopyFile(const char* src, const char* dst);
-
 
 bool MakeDirectory(const char* path) {
   struct stat buf;
@@ -52,7 +50,6 @@ bool MakeDirectory(const char* path) {
   return true;
 }
 
-
 bool CopyDirectory(const char* src, const char* parent) {
   const char* dst = join_unsafe(parent, basename_unsafe(src));
   if (exist(dst)) {
@@ -67,7 +64,6 @@ bool CopyDirectory(const char* src, const char* parent) {
 
   return CopyDirectoryContents(src, strdupa(dst));
 }
-
 
 static bool CopyDirectoryContents(const char* src, const char* dst) {
   bool okay = false;
@@ -104,7 +100,6 @@ close_src:
 exit:
   return okay;
 }
-
 
 static bool CopyFile(const char* src, const char* dst) {
   bool okay = false;
@@ -153,7 +148,6 @@ exit:
   return okay;
 }
 
-
 static char* basename_unsafe(const char* path) {
   char* p = strrchr(path, '/');
   if (!p)
@@ -164,7 +158,6 @@ static char* basename_unsafe(const char* path) {
 
   return p;
 }
-
 
 static char* dirname_unsafe(const char* path) {
   static char buffer[512];
@@ -186,7 +179,6 @@ static char* dirname_unsafe(const char* path) {
   return buffer;
 }
 
-
 static char* join_unsafe(const char* dirname, const char* basename) {
   static char buffer[512];
 
@@ -201,7 +193,6 @@ static char* join_unsafe(const char* dirname, const char* basename) {
   return buffer;
 }
 
-
 static bool exist(const char* path) {
   struct stat buf;
 
@@ -214,7 +205,6 @@ static bool exist(const char* path) {
 
   return true;
 }
-
 
 static bool isdir(const char* path) {
   struct stat buf;
