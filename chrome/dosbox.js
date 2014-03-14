@@ -123,7 +123,7 @@ function makeDictionary(key, value) {
 
 
 function main() {
-  var firstTimeUseKey = 'first-time-use-0.1.3';
+  var firstTimeUseKey = 'first-time-use-0.1.4';
   chrome.storage.local.get(makeDictionary(firstTimeUseKey, true),
   function (items) {
     console.log('firstTimeUse=' + items[firstTimeUseKey]);
