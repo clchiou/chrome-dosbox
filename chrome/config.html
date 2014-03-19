@@ -10,27 +10,40 @@ Copyright (C) 2014 Che-Liang Chiou.
     <link type="text/css" rel="stylesheet" href="css/smoothness/jquery-ui-1.10.4.custom.css">
   </head>
   <body>
-    <h3>Disk Space Management</h3>
-    <ul>
-      <li><a id="copy" class="config-item" href="#">Import folder to C:\ drive</a>
-      <li><a id="export" class="config-item" href="#">Export C:\ drive</a>
-      <li><a id="remove" class="config-item" href="#">Clear C:\ drive contents</a>
-    </ul>
-    <h3>Command Line Arguments</h3>
-    <textarea id="args-value" rows="1" cols="80"></textarea>
-    <p>
-    <button id="args-set">Store</button>
-    <button id="args-reset">Restore to Default</button>
-    </p>
-    <h3>Configuration File</h3>
-    <textarea id="config-value" rows="20" cols="80"></textarea>
-    <p>
-    <button id="config-set">Store</button>
-    <button id="config-reset">Restore to Default</button>
-    </p>
+    <div id="accordion">
+      <h3>Disk Space Management</h3>
+      <div id="disk-management">
+        <h3>Import/Export C Drive</h3>
+        <p><a id="import" href="#">Import local directory to C:\ drive</a></p>
+        <p><a id="export" href="#">Export C:\ drive</a></p>
+
+        <h3>Export Files or Directories</h3>
+        <form>
+          <ul id="export-list"></ul>
+          <button id="export-files">Export</button>
+        </form>
+
+        <button id="remove" class="config-item" href="#">Delete C:\ drive contents</button>
+      </div>
+
+      <h3>Configure DOSBox (Advanced)</h3>
+      <div>
+        <h3>Command Line Arguments</h3>
+        <textarea id="args-value" rows="1" cols="80"></textarea>
+        <button id="args-set">Store</button>
+        <button id="args-reset">Restore to Default</button>
+
+        <h3>Configuration File</h3>
+        <textarea id="config-value" rows="20" cols="80"></textarea>
+        <button id="config-set">Store</button>
+        <button id="config-reset">Restore to Default</button>
+      </div>
+    </div>
+
     <div id="status"></div>
     <script src="jquery-2.0.3.min.js"></script>
     <script src="jquery-ui-1.10.4.custom.min.js"></script>
+    <script src="export.js"></script>
     <script src="config.js"></script>
   </body>
 </html>

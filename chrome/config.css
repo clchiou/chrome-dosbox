@@ -9,6 +9,17 @@
   background-color: #ff0000;
 }
 
-.config-item {
-  font-size: 13px;
+#disk-management {
+  position: relative;
+}
+
+#export-list {
+  padding-left: 8px;
+  list-style: none;
+}
+
+#remove {
+  position: absolute;
+  top: 30px;
+  right: 30px;
 }

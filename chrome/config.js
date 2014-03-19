@@ -137,6 +137,8 @@ function showStatus(message) {
 
 
 function main() {
+  $('#accordion').accordion({heightStyle: 'content'});
+
   // TODO(clchiou): Let pepper.cpp and here read this path from a config file?
   var cDrivePath = '/c_drive';
   var cDriveMountPath = '/data/c_drive';
@@ -148,7 +150,7 @@ function main() {
     showStatus('Success');
   }
 
-  $('#copy').click(function () {
+  $('#import').click(function () {
     showStatus('Select import folder...');
     copyDirectory(getLocalDirectory, getHtml5Directory, true,
       function () {
@@ -163,7 +165,10 @@ function main() {
       onSuccess, logError);
   });
 
-  $('#remove').click(function () {
+  var exporter = new Exporter('#export-list');
+  $('#export-files').button().click(exporter.doExport);
+
+  $('#remove').button().click(function () {
     showStatus('Clearing...');
     dirForEach(getHtml5Directory, remove, onSuccess, logError);
   });
