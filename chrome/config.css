@@ -13,12 +13,12 @@
   position: relative;
 }
 
-#export-list {
+#export-files {
   padding-left: 8px;
   list-style: none;
 }
 
-#remove {
+#do-remove {
   position: absolute;
   top: 30px;
   right: 30px;

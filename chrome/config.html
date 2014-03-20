@@ -14,16 +14,14 @@ Copyright (C) 2014 Che-Liang Chiou.
       <h3>Disk Space Management</h3>
       <div id="disk-management">
         <h3>Import/Export C Drive</h3>
-        <p><a id="import" href="#">Import local directory to C:\ drive</a></p>
-        <p><a id="export" href="#">Export C:\ drive</a></p>
+        <p><a id="do-import" href="#">Import local directory to C:\ drive</a></p>
+        <p><a id="do-export" href="#">Export C:\ drive</a></p>
 
-        <h3>Export Files or Directories</h3>
-        <form>
-          <ul id="export-list"></ul>
-          <button id="export-files">Export</button>
-        </form>
+        <h3>Export Files and Directories</h3>
+        <ul id="export-files"></ul>
+        <button id="do-export-files">Export</button>
 
-        <button id="remove" class="config-item" href="#">Delete C:\ drive contents</button>
+        <button id="do-remove" class="config-item" href="#">Delete C:\ drive contents</button>
       </div>
 
       <h3>Configure DOSBox (Advanced)</h3>
@@ -43,6 +41,7 @@ Copyright (C) 2014 Che-Liang Chiou.
     <div id="status"></div>
     <script src="jquery-2.0.3.min.js"></script>
     <script src="jquery-ui-1.10.4.custom.min.js"></script>
+    <script src="file-util.js"></script>
     <script src="export.js"></script>
     <script src="config.js"></script>
   </body>
