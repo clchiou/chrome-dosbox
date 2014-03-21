@@ -72,7 +72,7 @@ function main() {
   });
 
   var exporter = new Exporter('#export-files', cDrivePath);
-  $('#do-export-files').button().click(exporter.doExport);
+  $('#do-export-files').button().click(exporter.onExportFiles);
 
   $('#do-remove').button().click(function () {
     showStatus('Clearing...');

@@ -1,16 +1,19 @@
 // Copyright (C) 2014 Che-Liang Chiou.
 
 
-function Exporter(exportFilesId, cDrivePath) {
+function Exporter(exportFilesElementId, cDrivePath) {
   var self = this;
 
-  var exportFiles = $(exportFilesId);
-  var inputBoxIndex = -1;
+  var exportFilesKey = 'export-files';
+
+  var exportFilesElement = $(exportFilesElementId);
+  var numInputBoxes = 0;
   var inputBoxContents = [];
   var autocompleteList = [];
 
-  function doExport() {
+  function onExportFiles() {
     console.log('inputBoxContents=' + inputBoxContents);
+    var exportFiles = [];
     for (var i in inputBoxContents) {
       var str = inputBoxContents[i].trim();
       if (str) {
@@ -19,10 +22,21 @@ function Exporter(exportFilesId, cDrivePath) {
           continue;
         }
         console.log('Export path: ' + path);
+        exportFiles.push(path);
       }
     }
+    // Save export files for the next time.
+    var items = {};
+    items[exportFilesKey] = exportFiles;
+    chrome.storage.sync.set(items);
+    // Now, export files.
+    doExportFiles(exportFiles);
   }
-  self.doExport = doExport;
+  self.onExportFiles = onExportFiles;
+
+  function doExportFiles(exportFiles) {
+    // TODO(clchiou): Implement doExportFiles.
+  }
 
   function onInputBoxKeyup(e) {
     var inputBox = $(this);
@@ -40,17 +54,22 @@ function Exporter(exportFilesId, cDrivePath) {
     inputBoxContents[i] = val;
   }
 
-  function addInputBox() {
+  function addInputBox(dosPath) {
     // XXX: We exploit the fact that autocomplete() does not make a copy of
     // source array.
-    var inputBox = $('<input>', {type: 'text', name: ++inputBoxIndex})
+    var inputBox = $('<input>', {type: 'text', name: numInputBoxes})
       .addClass('export-files-item')
       .keyup(onInputBoxKeyup)
-      .autocomplete({source: autocompleteList})
-      .val('C:\\')
-      .css('color', '#979797');
-    inputBoxContents.push('');
-    exportFiles.append($('<li>').append(inputBox));
+      .autocomplete({source: autocompleteList});
+    if (dosPath) {
+      inputBox.val(dosPath);
+      inputBoxContents.push(dosPath);
+    } else {
+      inputBox.val('C:\\').css('color', '#979797');
+      inputBoxContents.push('');
+    }
+    numInputBoxes++;
+    exportFilesElement.append($('<li>').append(inputBox));
     return inputBox;
   }
 
@@ -68,8 +87,18 @@ function Exporter(exportFilesId, cDrivePath) {
   // Load autocomplete list.
   loadTree(cDrivePath);
 
-  // Create the default empty input box.
-  addInputBox();
+  // Load export files of last time.
+  chrome.storage.sync.get(exportFilesKey, function (items) {
+    var exportFiles = items[exportFilesKey];
+    if (exportFiles) {
+      for (i in exportFiles) {
+        var dosPath = toDosPath(cDrivePath, exportFiles[i]);
+        addInputBox(dosPath);
+      }
+    }
+    // Create an empty input box at last.
+    addInputBox().focus();
+  });
 
   return self;
 }
