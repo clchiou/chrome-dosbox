@@ -55,6 +55,7 @@ clean:
 
 $(CHROME_APP): $(APP_SRCS) $(DOSBOX)
 	@echo Create $$(basename $(CHROME_APP))
+	cp filer.js/src/filer.min.js $(OUT)/chrome-dosbox
 	rsync --archive --delete icons $(OUT)/chrome-dosbox
 	rsync --archive --delete chrome/css $(OUT)/chrome-dosbox
 	cd $(OUT); zip -r chrome-dosbox.zip chrome-dosbox

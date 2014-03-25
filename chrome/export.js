@@ -35,7 +35,15 @@ function Exporter(exportFilesElementId, cDrivePath) {
   self.onExportFiles = onExportFiles;
 
   function doExportFiles(exportFiles) {
-    // TODO(clchiou): Implement doExportFiles.
+    getLocalDirectory(function (dstEntry) {
+      for (var i in exportFiles) {
+        openFileOrDirectory(exportFiles[i], function (srcEntry) {
+          TheFiler.cp(srcEntry, dstEntry, null, function (newEntry) {
+            console.log('Copy ' exportFiles[i] + ' to ' + newEntry.fullPath);
+          }, fsOnError);
+        }, fsOnError);
+      }
+    }, fsOnError);
   }
 
   function onInputBoxKeyup(e) {

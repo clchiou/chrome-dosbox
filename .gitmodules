@@ -1,3 +1,6 @@
 [submodule "naclports"]
 	path = naclports
 	url = https://github.com/clchiou/naclports.git
+[submodule "filer.js"]
+	path = filer.js
+	url = https://github.com/ebidel/filer.js

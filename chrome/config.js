@@ -43,6 +43,8 @@ function showStatus(message) {
 
 
 function main() {
+  initFiler();
+
   $('#accordion').accordion({heightStyle: 'content'});
 
   // TODO(clchiou): Let pepper.cpp and here read this path from a config file?
