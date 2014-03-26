@@ -39,7 +39,7 @@ function Exporter(exportFilesElementId, cDrivePath) {
       for (var i in exportFiles) {
         openFileOrDirectory(exportFiles[i], function (srcEntry) {
           TheFiler.cp(srcEntry, dstEntry, null, function (newEntry) {
-            console.log('Copy ' exportFiles[i] + ' to ' + newEntry.fullPath);
+            console.log('Copy ' + exportFiles[i] + ' to ' + newEntry.fullPath);
           }, fsOnError);
         }, fsOnError);
       }
@@ -82,11 +82,8 @@ function Exporter(exportFilesElementId, cDrivePath) {
   }
 
   function loadTree(path) {
-    var getDirectory = makeGetHtml5Directory(makeRequestHtml5FileSystem(), path);
-    traverse(true, getDirectory, function (entry) {
+    traverse(path, function (entry) {
       autocompleteList.push(toDosPath(cDrivePath, entry.fullPath));
-    }, function () {
-      // Do nothing on success.
     }, function (error) {
       console.log('loadTree: Fail: ' + error.name);
     });

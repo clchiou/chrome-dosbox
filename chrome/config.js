@@ -1,28 +1,6 @@
 // Copyright (C) 2014 Che-Liang Chiou.
 
 
-// Useful for debugging
-function listDirectory(path) {
-  var getDirectory = makeGetHtml5Directory(makeRequestHtml5FileSystem(), path);
-  dirForEach(getDirectory, function (entry) {
-    console.log(entry.fullPath);
-  }, function () {}, logError);
-}
-
-
-function remove(entry) {
-  if (entry.isFile) {
-    entry.remove(function () {
-      console.log('Remove file ' + entry.fullPath);
-    }, logError);
-  } else {
-    entry.removeRecursively(function () {
-      console.log('Remove directory ' + entry.fullPath);
-    }, logError);
-  }
-}
-
-
 function logError(error) {
   if (error.name == 'EntryUndefined') {
     showStatus('Failed. Did you open a symlink?');
@@ -43,34 +21,48 @@ function showStatus(message) {
 
 
 function main() {
-  initFiler();
-
   $('#accordion').accordion({heightStyle: 'content'});
 
   // TODO(clchiou): Let pepper.cpp and here read this path from a config file?
   var cDrivePath = '/c_drive';
   var cDriveMountPath = '/data/c_drive';
 
-  var getHtml5Directory = makeGetHtml5Directory(makeRequestHtml5FileSystem(),
-      cDrivePath);
-
   function onSuccess() {
     showStatus('Success');
   }
 
   $('#do-import').click(function () {
-    showStatus('Select import folder...');
-    copyDirectory(getLocalDirectory, getHtml5Directory, true,
-      function () {
-        showStatus('Success. Please Restart DOSBox for new folder.');
-      },
-      logError);
+    function doImport(srcDir) {
+      TheFiler.fs.root.getDirectory(cDrivePath, {create: true},
+        function (dstDir) {
+          TheFiler.cp(srcDir, dstDir, null, function () {
+            showStatus('Success. Please Restart DOSBox for new directory.');
+          }, logError);
+        }, logError);
+    }
+    showStatus('Select import directory...');
+    getLocalDirectory(function (srcDir) {
+      // If destination directory is not empty, W3C spec says you cannot write
+      // to it; so remove destination before copy.
+      var dstPath = cDrivePath + '/' + srcDir.name;
+      openFileOrDirectory(dstPath, function() {
+        TheFiler.rm(dstPath, function () {
+          doImport(srcDir);
+        }, logError);
+      }, function() {
+        doImport(srcDir);
+      });
+    }, logError);
   });
 
   $('#do-export').click(function () {
     showStatus('Select destination...');
-    copyDirectory(getHtml5Directory, getLocalDirectory, false,
-      onSuccess, logError);
+    getLocalDirectory(function (dstDir) {
+      TheFiler.fs.root.getDirectory(cDrivePath, {create: true},
+        function (srcDir) {
+          TheFiler.cp(srcDir, dstDir, null, onSuccess, logError);
+        }, logError);
+    }, logError);
   });
 
   var exporter = new Exporter('#export-files', cDrivePath);
@@ -78,7 +70,7 @@ function main() {
 
   $('#do-remove').button().click(function () {
     showStatus('Clearing...');
-    dirForEach(getHtml5Directory, remove, onSuccess, logError);
+    TheFiler.rm(cDrivePath, onSuccess, logError);
   });
 
   var argsDefault = 'dosbox ' + cDriveMountPath;
@@ -110,4 +102,6 @@ function main() {
 }
 
 
-$(document).ready(main);
+$(document).ready(function () {
+  initFiler(main);
+});
