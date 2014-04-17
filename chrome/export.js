@@ -109,29 +109,40 @@ function Exporter(exportFilesElementId, cDrivePath) {
 }
 
 
-function toDosPath(cDrivePath, html5fsPath) {
-  var dosPath = html5fsPath;
-  if (html5fsPath.substring(0, cDrivePath.length) === cDrivePath) {
-    dosPath = html5fsPath.substring(cDrivePath.length);
-  }
-  dosPath = dosPath.replace(/\//g, '\\');
-  if (dosPath[0] !== '\\') {
-    dosPath = '\\' + dosPath;
-  }
-  return 'C:' + dosPath;
-}
+Export = (function() {
+  'use strict';
 
+  var Export = {
+    toDosPath: function(cDrivePath, html5fsPath) {
+      var dosPath = html5fsPath;
+      if (html5fsPath.substring(0, cDrivePath.length) === cDrivePath) {
+        dosPath = html5fsPath.substring(cDrivePath.length);
+      }
+      dosPath = dosPath.replace(/\/+/g, '\\').replace(/\\$/g, '');
+      if (dosPath[0] !== '\\') {
+        dosPath = '\\' + dosPath;
+      }
+      return 'C:' + dosPath;
+    },
 
-function toHtml5fsPath(cDrivePath, dosPath) {
-  var html5fsPath = dosPath;
-  if (dosPath.substring(0, 2).toUpperCase() === 'C:') {
-    html5fsPath = dosPath.substring(2);
-  }
-  html5fsPath = html5fsPath.replace(/\\/g, '/');
-  if (html5fsPath !== '' && html5fsPath[0] !== '/') {
-    html5fsPath = '/' + html5fsPath;
-  } else if (html5fsPath === '/') {
-    html5fsPath = '';
-  }
-  return cDrivePath + html5fsPath;
-}
+    toHtml5fsPath: function(cDrivePath, dosPath) {
+      var html5fsPath = dosPath;
+      if (dosPath.substring(0, 2).toUpperCase() === 'C:') {
+        html5fsPath = dosPath.substring(2);
+      }
+      html5fsPath = html5fsPath.replace(/\\+/g, '/').replace(/\/$/g, '');
+      if (html5fsPath !== '' && html5fsPath[0] !== '/') {
+        html5fsPath = '/' + html5fsPath;
+      } else if (html5fsPath === '/') {
+        html5fsPath = '';
+      }
+      return cDrivePath + html5fsPath;
+    },
+  };
+
+  return Export;
+})();
+
+// TODO(clchiou): For backward compatibility; remove soon.
+toDosPath = Export.toDosPath;
+toHtml5fsPath = Export.toHtml5fsPath;
