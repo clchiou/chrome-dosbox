@@ -1,31 +1,50 @@
 // Copyright (C) 2014 Che-Liang Chiou.
 
 
-Unittest = (function() {
+var Unittest;
+
+Unittest = (function () {
   "use strict";
 
-  var defaultMessage = 'AssertionError';
+  var defaultMessage, Unittest;
 
-  var Unittest = {
-    assertTrue: function(condition, message) {
+  defaultMessage = 'AssertionError';
+
+  Unittest = {
+    assertTrue: function (condition, message) {
       if (!condition) {
         throw message || defaultMessage;
       }
     },
 
-    assertEqual: function(expected, value, message) {
+    assertEqual: function (expected, value, message) {
       message = message || defaultMessage;
       Unittest.assertTrue(expected === value,
         message + ': ' + expected + ' !== ' + value);
     },
 
-    run: function() {
-      for (var i = 0; i < arguments.length; i++) {
-        arguments[i]();
+    assertArrayEqual: function (expected, value, message) {
+      var i;
+      message = message || defaultMessage;
+      Unittest.assertTrue(expected.length === value.length,
+        message + ': length: ' + expected.length + ' !== ' + value.length);
+      for (i = 0; i < expected.length; i++) {
+        Unittest.assertTrue(expected[i] === value[i],
+          message + ': index=' + i + ': ' + expected[i] + ' !== ' + value[i]);
+      }
+    },
+
+    run: function (tests) {
+      var name;
+      for (name in tests) {
+        if (tests.hasOwnProperty(name)) {
+          tests[name]();
+          console.log('PASS: ' + name);
+        }
       }
       console.log('Test completed');
     },
   };
 
   return Unittest;
-})();
+}());

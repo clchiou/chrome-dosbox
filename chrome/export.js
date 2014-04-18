@@ -109,11 +109,42 @@ function Exporter(exportFilesElementId, cDrivePath) {
 }
 
 
-Export = (function() {
+var Export;
+
+Export = (function($) {
   'use strict';
 
-  var Export = {
-    toDosPath: function(cDrivePath, html5fsPath) {
+  var FilesExporter, Export;
+
+  FilesExporter = function (cDrivePath) {
+    if (!(this instanceof FilesExporter)) {
+      return new FilesExporter();
+    }
+    this.cDrivePath = cDrivePath;
+  };
+
+  FilesExporter.prototype.addDosPath = function (dosPath) {
+  };
+
+  Export = {
+    FilesExporter: FilesExporter,
+
+    getExportFilepaths: function (cDrivePath, filepaths) {
+      var i, filepath, exportFilepaths;
+      exportFilepaths = [];
+      for (i = 0; i < filepaths.length; i++) {
+        filepath = filepaths[i].trim();
+        if (filepath !== '') {
+          filepath = toHtml5fsPath(cDrivePath, filepath);
+          if (filepath !== cDrivePath) {
+            exportFilepaths.push(filepath);
+          }
+        }
+      }
+      return exportFilepaths;
+    },
+
+    toDosPath: function (cDrivePath, html5fsPath) {
       var dosPath = html5fsPath;
       if (html5fsPath.substring(0, cDrivePath.length) === cDrivePath) {
         dosPath = html5fsPath.substring(cDrivePath.length);
@@ -125,7 +156,7 @@ Export = (function() {
       return 'C:' + dosPath;
     },
 
-    toHtml5fsPath: function(cDrivePath, dosPath) {
+    toHtml5fsPath: function (cDrivePath, dosPath) {
       var html5fsPath = dosPath;
       if (dosPath.substring(0, 2).toUpperCase() === 'C:') {
         html5fsPath = dosPath.substring(2);
@@ -141,7 +172,7 @@ Export = (function() {
   };
 
   return Export;
-})();
+}(jQuery));
 
 // TODO(clchiou): For backward compatibility; remove soon.
 toDosPath = Export.toDosPath;
