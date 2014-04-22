@@ -1,6 +1,5 @@
 // Copyright (C) 2014 Che-Liang Chiou.
 
-
 function Exporter(exportFilesElementId, cDrivePath) {
   var self = this;
 
@@ -109,25 +108,82 @@ function Exporter(exportFilesElementId, cDrivePath) {
 }
 
 
+/*global jQuery */
+
 var Export;
 
-Export = (function($) {
+Export = (function ($) {
   'use strict';
 
-  var FilesExporter, Export;
+  var Widget, Export, unusedParameter;
 
-  FilesExporter = function (cDrivePath) {
-    if (!(this instanceof FilesExporter)) {
-      return new FilesExporter();
-    }
-    this.cDrivePath = cDrivePath;
+  unusedParameter = function () {
+    return 0;
   };
 
-  FilesExporter.prototype.addDosPath = function (dosPath) {
+  Widget = function (elementId) {
+    if (!(this instanceof Widget)) {
+      return new Widget(elementId);
+    }
+    this.elementId = elementId;
+    this.autocompleteList = [];
+  };
+
+  Widget.prototype.setAutocompleteList = function (autocompleteList) {
+    this.autocompleteList = autocompleteList;
+  };
+
+  Widget.prototype.getItemClassName = function () {
+    return this.elementId + '-item';
+  };
+
+  Widget.prototype.addInputBox = function (dosPath) {
+    var input, color;
+    if (dosPath) {
+      color = Export.config.colorDark;
+    } else {
+      dosPath = 'C:\\';
+      color = Export.config.colorLight;
+    }
+    input = $('<input>', {type: 'text'})
+      .addClass(this.getItemClassName())
+      .val(dosPath)
+      .css('color', color)
+      .autocomplete({source: this.autocompleteList});
+    input.keyup(this.onKeyup.bind(this, input));
+    $('#' + this.elementId).append($('<li>').append(input));
+    return input;
+  };
+
+  Widget.prototype.onKeyup = function (input, e) {
+    var val = input.val().toUpperCase();
+    if (val === 'C:' || val === 'C:\\') {
+      input.css('color', Export.config.colorLight);
+    } else {
+      input.css('color', Export.config.colorDark);
+    }
+    if (e.keyCode === 13) {
+      this.addInputBox().focus();
+    }
+  };
+
+  Widget.prototype.getDosPaths = function () {
+    var paths = [];
+    $('.' + this.getItemClassName()).val(function (i, path) {
+      unusedParameter(i);
+      paths.push(path);
+      return path;
+    });
+    return paths;
   };
 
   Export = {
-    FilesExporter: FilesExporter,
+    Widget: Widget,
+
+    config: {
+      colorLight: '#979797',
+      colorDark: '#000000',
+    },
 
     getExportFilepaths: function (cDrivePath, filepaths) {
       var i, filepath, exportFilepaths;
@@ -135,7 +191,7 @@ Export = (function($) {
       for (i = 0; i < filepaths.length; i++) {
         filepath = filepaths[i].trim();
         if (filepath !== '') {
-          filepath = toHtml5fsPath(cDrivePath, filepath);
+          filepath = this.toHtml5fsPath(cDrivePath, filepath);
           if (filepath !== cDrivePath) {
             exportFilepaths.push(filepath);
           }

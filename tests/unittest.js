@@ -19,17 +19,17 @@ Unittest = (function () {
 
     assertEqual: function (expected, value, message) {
       message = message || defaultMessage;
-      Unittest.assertTrue(expected === value,
+      this.assertTrue(expected === value,
         message + ': ' + expected + ' !== ' + value);
     },
 
     assertArrayEqual: function (expected, value, message) {
       var i;
       message = message || defaultMessage;
-      Unittest.assertTrue(expected.length === value.length,
+      this.assertTrue(expected.length === value.length,
         message + ': length: ' + expected.length + ' !== ' + value.length);
       for (i = 0; i < expected.length; i++) {
-        Unittest.assertTrue(expected[i] === value[i],
+        this.assertTrue(expected[i] === value[i],
           message + ': index=' + i + ': ' + expected[i] + ' !== ' + value[i]);
       }
     },

@@ -11,6 +11,14 @@
   cDrivePath = '/data/c_drive';
 
   tests = {
+    testGetExportFilepaths: function () {
+      var testInput, testOutput, output;
+      testInput = ['', 'C:\\', 'C:\\a', 'C:\\a\\b'];
+      testOutput = ['/data/c_drive/a', '/data/c_drive/a/b'];
+      output = Export.getExportFilepaths(cDrivePath, testInput);
+      Unittest.assertArrayEqual(testOutput, output);
+    },
+
     testToDosPath: function () {
       var testData, i;
       testData = [
@@ -51,17 +59,12 @@
           Export.toHtml5fsPath(cDrivePath, testData[i][1]));
       }
     },
-
-    testGetExportFilepaths: function () {
-      var testInput, testOutput, output;
-      testInput = ['', 'C:\\', 'C:\\a', 'C:\\a\\b'];
-      testOutput = ['/data/c_drive/a', '/data/c_drive/a/b'];
-      output = Export.getExportFilepaths(cDrivePath, testInput);
-      Unittest.assertArrayEqual(testOutput, output);
-    },
   };
 
   $(document).ready(function () {
+    var widget;
     Unittest.run(tests);
+    widget = new Export.Widget('export-files');
+    widget.addInputBox();
   });
 }(jQuery, Export, Unittest));
