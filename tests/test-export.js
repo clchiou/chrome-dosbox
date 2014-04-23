@@ -65,6 +65,11 @@
     var widget;
     Unittest.run(tests);
     widget = new Export.Widget('export-files');
+    widget.pushAutocompletePath('C:\\');
+    widget.pushAutocompletePath('C:\\a');
+    widget.pushAutocompletePath('C:\\b');
+    widget.pushAutocompletePath('C:\\c');
+    widget.pushAutocompletePath('C:\\d');
     widget.addInputBox();
   });
 }(jQuery, Export, Unittest));

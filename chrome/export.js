@@ -108,16 +108,16 @@ function Exporter(exportFilesElementId, cDrivePath) {
 }
 
 
-/*global jQuery */
+/*global jQuery, Log */
 
 var Export;
 
-Export = (function ($) {
+Export = (function ($, Log) {
   'use strict';
 
-  var Widget, Export, unusedParameter;
+  var Widget, Export, unused;
 
-  unusedParameter = function () {
+  unused = function () {
     return 0;
   };
 
@@ -126,11 +126,11 @@ Export = (function ($) {
       return new Widget(elementId);
     }
     this.elementId = elementId;
-    this.autocompleteList = [];
+    this.autocompletePaths = [];
   };
 
-  Widget.prototype.setAutocompleteList = function (autocompleteList) {
-    this.autocompleteList = autocompleteList;
+  Widget.prototype.pushAutocompletePath = function (dosPath) {
+    this.autocompletePaths.push(dosPath);
   };
 
   Widget.prototype.getItemClassName = function () {
@@ -149,7 +149,7 @@ Export = (function ($) {
       .addClass(this.getItemClassName())
       .val(dosPath)
       .css('color', color)
-      .autocomplete({source: this.autocompleteList});
+      .autocomplete({source: this.autocompletePaths});
     input.keyup(this.onKeyup.bind(this, input));
     $('#' + this.elementId).append($('<li>').append(input));
     return input;
@@ -168,11 +168,11 @@ Export = (function ($) {
   };
 
   Widget.prototype.getDosPaths = function () {
-    var paths = [];
-    $('.' + this.getItemClassName()).val(function (i, path) {
-      unusedParameter(i);
-      paths.push(path);
-      return path;
+    var paths;
+    paths = [];
+    $('.' + this.getItemClassName()).each(function (i, input) {
+      unused(i);
+      paths.push($(input).val());
     });
     return paths;
   };
@@ -183,6 +183,28 @@ Export = (function ($) {
     config: {
       colorLight: '#979797',
       colorDark: '#000000',
+    },
+
+    loadFilePaths: function (filer, cDrivePath, pushPath) {
+      var onEntries, onError;
+
+      onEntries = function (entries) {
+        var i;
+        for (i = 0; i < entries.length; i++) {
+          pushPath(entries[i].fullPath);
+        }
+        for (i = 0; i < entries.length; i++) {
+          if (entries[i].isDirectory) {
+            filer.ls(entries[i].fullPath, onEntries, onError);
+          }
+        }
+      };
+
+      onError = function (error) {
+        Log.e('loadFilePaths: Could not load paths: ' + error.name);
+      };
+
+      filer.ls(cDrivePath, onEntries, onError);
     },
 
     getExportFilepaths: function (cDrivePath, filepaths) {
@@ -228,7 +250,7 @@ Export = (function ($) {
   };
 
   return Export;
-}(jQuery));
+}(jQuery, Log));
 
 // TODO(clchiou): For backward compatibility; remove soon.
 toDosPath = Export.toDosPath;
