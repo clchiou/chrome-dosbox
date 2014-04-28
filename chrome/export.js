@@ -1,118 +1,9 @@
 // Copyright (C) 2014 Che-Liang Chiou.
 
-function Exporter(exportFilesElementId, cDrivePath) {
-  var self = this;
 
-  var exportFilesKey = 'export-files';
+/*global chrome, jQuery, Log, FsUtil */
 
-  var exportFilesElement = $(exportFilesElementId);
-  var numInputBoxes = 0;
-  var inputBoxContents = [];
-  var autocompleteList = [];
-
-  function onExportFiles() {
-    console.log('inputBoxContents=' + inputBoxContents);
-    var exportFiles = [];
-    for (var i in inputBoxContents) {
-      var str = inputBoxContents[i].trim();
-      if (str) {
-        var path = toHtml5fsPath(cDrivePath, str);
-        if (path.substring(cDrivePath.length).search(/[^\/]/) === -1) {
-          continue;
-        }
-        console.log('Export path: ' + path);
-        exportFiles.push(path);
-      }
-    }
-    // Save export files for the next time.
-    var items = {};
-    items[exportFilesKey] = exportFiles;
-    chrome.storage.sync.set(items);
-    // Now, export files.
-    doExportFiles(exportFiles);
-  }
-  self.onExportFiles = onExportFiles;
-
-  function doExportFiles(exportFiles) {
-    getLocalDirectory(function (dstEntry) {
-      for (var i in exportFiles) {
-        openFileOrDirectory(exportFiles[i], function (srcEntry) {
-          TheFiler.cp(srcEntry, dstEntry, null, function (newEntry) {
-            console.log('Copy ' + exportFiles[i] + ' to ' + newEntry.fullPath);
-          }, fsOnError);
-        }, fsOnError);
-      }
-    }, fsOnError);
-  }
-
-  function onInputBoxKeyup(e) {
-    var inputBox = $(this);
-    var val = inputBox.val();
-    if (val.toUpperCase() === 'C:' || val.toUpperCase() === 'C:\\') {
-      inputBox.css('color', '#979797');
-    } else {
-      inputBox.css('color', '#000000');
-    }
-    if (e.keyCode == 13) {
-      addInputBox().focus();
-      return;
-    }
-    var i = inputBox.attr('name');
-    inputBoxContents[i] = val;
-  }
-
-  function addInputBox(dosPath) {
-    // XXX: We exploit the fact that autocomplete() does not make a copy of
-    // source array.
-    var inputBox = $('<input>', {type: 'text', name: numInputBoxes})
-      .addClass('export-files-item')
-      .keyup(onInputBoxKeyup)
-      .autocomplete({source: autocompleteList});
-    if (dosPath) {
-      inputBox.val(dosPath);
-      inputBoxContents.push(dosPath);
-    } else {
-      inputBox.val('C:\\').css('color', '#979797');
-      inputBoxContents.push('');
-    }
-    numInputBoxes++;
-    exportFilesElement.append($('<li>').append(inputBox));
-    return inputBox;
-  }
-
-  function loadTree(path) {
-    traverse(path, function (entry) {
-      autocompleteList.push(toDosPath(cDrivePath, entry.fullPath));
-    }, function (error) {
-      console.log('loadTree: Fail: ' + error.name);
-    });
-  }
-
-  // Load autocomplete list.
-  loadTree(cDrivePath);
-
-  // Load export files of last time.
-  chrome.storage.sync.get(exportFilesKey, function (items) {
-    var exportFiles = items[exportFilesKey];
-    if (exportFiles) {
-      for (i in exportFiles) {
-        var dosPath = toDosPath(cDrivePath, exportFiles[i]);
-        addInputBox(dosPath);
-      }
-    }
-    // Create an empty input box at last.
-    addInputBox().focus();
-  });
-
-  return self;
-}
-
-
-/*global jQuery, Log */
-
-var Export;
-
-Export = (function ($, Log) {
+var Export = (function ($, Log, FsUtil) {
   'use strict';
 
   var Widget, Export, unused;
@@ -129,6 +20,38 @@ Export = (function ($, Log) {
     this.autocompletePaths = [];
   };
 
+  Widget.prototype.loadExportPaths = function (storage) {
+    var getter;
+
+    getter = function (items) {
+      var i, dosPaths;
+      if (!items[Export.config.exportDosPaths]) {
+        Log.w('loadExportPaths: Could not load export paths from storage: ' +
+          chrome.runtime.lastError);
+        this.addInputBox();
+        return;
+      }
+      dosPaths = items[Export.config.exportDosPaths];
+      for (i = 0; i < dosPaths.length; i++) {
+        this.addInputBox(dosPaths[i]);
+      }
+      this.addInputBox();
+    };
+
+    storage.get(Export.config.exportDosPaths, getter.bind(this));
+  };
+
+  Widget.prototype.saveExportPaths = function (storage) {
+    var items = {};
+    items[Export.config.exportDosPaths] = this.getDosPaths();
+    storage.set(items, function () {
+      if (chrome.runtime.lastError) {
+        Log.w('loadExportPaths: Could not save export paths to storage: ' +
+          chrome.runtime.lastError);
+      }
+    });
+  };
+
   Widget.prototype.pushAutocompletePath = function (dosPath) {
     this.autocompletePaths.push(dosPath);
   };
@@ -138,6 +61,7 @@ Export = (function ($, Log) {
   };
 
   Widget.prototype.addInputBox = function (dosPath) {
+    Log.d('addInputBox: dosPath=' + dosPath);
     var input, color;
     if (dosPath) {
       color = Export.config.colorDark;
@@ -168,13 +92,20 @@ Export = (function ($, Log) {
   };
 
   Widget.prototype.getDosPaths = function () {
-    var paths;
-    paths = [];
+    var rawDosPaths, dosPaths, dosPath, i;
+    rawDosPaths = [];
     $('.' + this.getItemClassName()).each(function (i, input) {
       unused(i);
-      paths.push($(input).val());
+      rawDosPaths.push($(input).val());
     });
-    return paths;
+    dosPaths = [];
+    for (i = 0; i < rawDosPaths.length; i++) {
+      dosPath = rawDosPaths[i].trim();
+      if (dosPath.toUpperCase() !== 'C:' && dosPath.toUpperCase() !== 'C:\\') {
+        dosPaths.push(dosPath);
+      }
+    }
+    return dosPaths;
   };
 
   Export = {
@@ -183,9 +114,10 @@ Export = (function ($, Log) {
     config: {
       colorLight: '#979797',
       colorDark: '#000000',
+      exportDosPaths: 'export-dos-paths',
     },
 
-    loadFilePaths: function (filer, cDrivePath, pushPath) {
+    getFilePaths: function (filer, cDrivePath, pushPath) {
       var onEntries, onError;
 
       onEntries = function (entries) {
@@ -201,25 +133,58 @@ Export = (function ($, Log) {
       };
 
       onError = function (error) {
-        Log.e('loadFilePaths: Could not load paths: ' + error.name);
+        Log.e('getFilePaths: Could not load paths: ' + error.name);
       };
 
       filer.ls(cDrivePath, onEntries, onError);
     },
 
-    getExportFilepaths: function (cDrivePath, filepaths) {
-      var i, filepath, exportFilepaths;
-      exportFilepaths = [];
-      for (i = 0; i < filepaths.length; i++) {
-        filepath = filepaths[i].trim();
-        if (filepath !== '') {
-          filepath = this.toHtml5fsPath(cDrivePath, filepath);
-          if (filepath !== cDrivePath) {
-            exportFilepaths.push(filepath);
+    exportFiles: function (filer, cDrivePath, dosPaths) {
+      var html5fsPaths = this.getExportFilePaths(cDrivePath, dosPaths);
+      FsUtil.getLocalDirectory(function (dstEntry) {
+        var i, onSrcEntry, onSuccess, onError;
+
+        onSrcEntry = function (srcEntry) {
+          FsUtil.copy(filer, srcEntry, dstEntry, onSuccess, onError);
+        };
+
+        onSuccess = function (newEntry) {
+          Log.d('Succeed in copying:' +
+            ' src=' + html5fsPaths[i] +
+            ' dst=' + newEntry.fullPath);
+          i++;
+          if (i < html5fsPaths.length) {
+            FsUtil.openFileOrDirectory(filer.fs, html5fsPaths[i],
+              onSrcEntry, onError);
+          } else {
+            Log.i('Succeed in exporting files');
+          }
+        };
+
+        onError = function (error) {
+          var dosPath = Export.toDosPath(cDrivePath, html5fsPaths[i]);
+          Log.e('Could not copy "' + dosPath + '": ' + error.name);
+        };
+
+        i = 0;
+        FsUtil.openFileOrDirectory(filer.fs, html5fsPaths[i],
+            onSrcEntry, onError);
+      });
+    },
+
+    getExportFilePaths: function (cDrivePath, dosPaths) {
+      var i, filePath, exportFilePaths;
+      exportFilePaths = [];
+      for (i = 0; i < dosPaths.length; i++) {
+        filePath = dosPaths[i].trim();
+        if (filePath !== '') {
+          filePath = this.toHtml5fsPath(cDrivePath, filePath);
+          if (filePath !== cDrivePath) {
+            exportFilePaths.push(filePath);
           }
         }
       }
-      return exportFilepaths;
+      return exportFilePaths;
     },
 
     toDosPath: function (cDrivePath, html5fsPath) {
@@ -250,8 +215,4 @@ Export = (function ($, Log) {
   };
 
   return Export;
-}(jQuery, Log));
-
-// TODO(clchiou): For backward compatibility; remove soon.
-toDosPath = Export.toDosPath;
-toHtml5fsPath = Export.toHtml5fsPath;
+}(jQuery, Log, FsUtil));

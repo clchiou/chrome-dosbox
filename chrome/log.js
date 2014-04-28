@@ -15,6 +15,16 @@ Log = (function ($) {
 
     duration: 8000,
 
+    i: function (message) {
+      console.log('INFO: ' + message);
+      $(this.elementId).show().text(message)
+        .delay(this.duration).fadeOut(1000);
+    },
+
+    w: function (message) {
+      console.log('WARNING: ' + message);
+    },
+
     e: function (message) {
       console.log('ERROR: ' + message);
       $(this.elementId).show().text(message)

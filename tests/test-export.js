@@ -1,7 +1,7 @@
 // Copyright (C) 2014 Che-Liang Chiou.
 
 
-/*global jQuery, Export, Unittest, document */
+/*global document, jQuery, Export, Unittest */
 
 (function ($, Export, Unittest) {
   'use strict';
@@ -11,11 +11,11 @@
   cDrivePath = '/data/c_drive';
 
   tests = {
-    testGetExportFilepaths: function () {
+    testGetExportFilePaths: function () {
       var testInput, testOutput, output;
       testInput = ['', 'C:\\', 'C:\\a', 'C:\\a\\b'];
       testOutput = ['/data/c_drive/a', '/data/c_drive/a/b'];
-      output = Export.getExportFilepaths(cDrivePath, testInput);
+      output = Export.getExportFilePaths(cDrivePath, testInput);
       Unittest.assertArrayEqual(testOutput, output);
     },
 

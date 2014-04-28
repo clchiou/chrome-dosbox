@@ -65,8 +65,19 @@ function main() {
     }, logError);
   });
 
-  var exporter = new Exporter('#export-files', cDrivePath);
-  $('#do-export-files').button().click(exporter.onExportFiles);
+  var exportWidget = new Export.Widget('export-files');
+  exportWidget.loadExportPaths(chrome.storage.sync);
+  $('#do-save-export-files-list').button().click(function () {
+    exportWidget.saveExportPaths(chrome.storage.sync);
+  });
+  $('#do-export-files').button().click(function () {
+    var dosPaths = exportWidget.getDosPaths();
+    Export.exportFiles(TheFiler, cDrivePath, dosPaths);
+  });
+  Export.getFilePaths(TheFiler, cDrivePath, function (html5fsPath) {
+    var dosPath = Export.toDosPath(cDrivePath, html5fsPath);
+    exportWidget.pushAutocompletePath(dosPath);
+  });
 
   $('#do-remove').button().click(function () {
     showStatus('Clearing...');
