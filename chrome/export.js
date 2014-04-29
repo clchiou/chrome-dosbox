@@ -117,6 +117,16 @@ var Export = (function ($, Log, FsUtil) {
       exportDosPaths: 'export-dos-paths',
     },
 
+    exportDirectory: function (filer, path, onSuccess, onError) {
+      Log.d('Selecting export destination');
+      FsUtil.getLocalDirectory(function (dstDir) {
+        filer.fs.root.getDirectory(path, {create: true}, function (srcEntry) {
+          Log.i('Copying files');
+          FsUtil.copy(filer, srcEntry, dstDir, onSuccess, onError);
+        }, onError);
+      }, onError);
+    },
+
     getFilePaths: function (filer, cDrivePath, pushPath) {
       var onEntries, onError;
 

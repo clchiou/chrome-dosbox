@@ -1,118 +1,150 @@
 // Copyright (C) 2014 Che-Liang Chiou.
 
 
-function logError(error) {
-  if (error.name == 'EntryUndefined') {
-    showStatus('Failed. Did you open a symlink?');
-  } else if (error.name == 'InvalidModificationError') {
-    showStatus('Failed. Could not override target.');
-  } else {
-    showStatus('Failed.');
-  }
-  console.log('Error: ' + error.name);
-}
+/*global chrome, document, jQuery, Filer, Log, Import, Export */
 
+(function ($, Filer, Log, Import, Export) {
+  'use strict';
+  var Config, main, afterFilerInitialized, onError,
+    filer, quota, cDrivePath, cDriveMountPath;
 
-function showStatus(message) {
-  $('#status').text(message).fadeOut(8000, function() {
-    $('#status').text('').show();
-  });
-}
+  // TODO(clchiou): Let pepper.cpp and here read these data from a config file?
+  cDrivePath = '/c_drive';
+  cDriveMountPath = '/data/c_drive';
+  quota = 1024 * 1024 * 1024;  // 1 GB
 
+  main = function () {
+    Log.d('Initializing file system');
+    filer = new Filer();
+    filer.init({persistent: true, size: quota},
+      afterFilerInitialized, onError);
+  };
 
-function main() {
-  $('#accordion').accordion({heightStyle: 'content'});
+  afterFilerInitialized = function () {
+    var exportWidget, config;
+    Log.d('Initializing UI');
 
-  // TODO(clchiou): Let pepper.cpp and here read this path from a config file?
-  var cDrivePath = '/c_drive';
-  var cDriveMountPath = '/data/c_drive';
+    $('#accordion').accordion({heightStyle: 'content'});
 
-  function onSuccess() {
-    showStatus('Success');
-  }
+    $('#do-import').click(function () {
+      Import.importDirectory(filer, cDrivePath, function () {
+        Log.i('Succeed in importing files; please restart DOSBox');
+      }, onError);
+    });
 
-  $('#do-import').click(function () {
-    function doImport(srcDir) {
-      TheFiler.fs.root.getDirectory(cDrivePath, {create: true},
-        function (dstDir) {
-          TheFiler.cp(srcDir, dstDir, null, function () {
-            showStatus('Success. Please Restart DOSBox for new directory.');
-          }, logError);
-        }, logError);
+    $('#do-export').click(function () {
+      Export.exportDirectory(filer, cDrivePath, function () {
+        Log.i('Succeed in exporting C Drive');
+      }, onError);
+    });
+
+    exportWidget = new Export.Widget('export-files');
+    exportWidget.loadExportPaths(chrome.storage.sync);
+    $('#do-save-export-files-list').button().click(function () {
+      exportWidget.saveExportPaths(chrome.storage.sync);
+    });
+    $('#do-export-files').button().click(function () {
+      var dosPaths = exportWidget.getDosPaths();
+      Export.exportFiles(filer, cDrivePath, dosPaths);
+    });
+    Export.getFilePaths(filer, cDrivePath, function (html5fsPath) {
+      var dosPath = Export.toDosPath(cDrivePath, html5fsPath);
+      exportWidget.pushAutocompletePath(dosPath);
+    });
+
+    $('#do-remove').button().click(function () {
+      Log.d('Clearing C Drive contents');
+      filer.rm(cDrivePath, function () {
+        Log.i('Succeed in clearing C Drive contents');
+      }, onError);
+    });
+
+    // Load stored values.
+    config = new Config(chrome.storage.sync);
+    config.get(function (args) {
+      $('#args-value')[0].value = args;
+    }, function (config) {
+      $('#config-value')[0].value = config;
+    });
+    // Bind for args.
+    $('#args-set').button().click(function () {
+      config.setArgs($('#args-value')[0].value);
+    });
+    $('#args-reset').button().click(function () {
+      $('#args-value')[0].value = config.defaultArgs;
+      config.setArgs(config.defaultArgs);
+    });
+    // Bind for config.
+    $('#config-set').button().click(function () {
+      config.setConfig($('#config-value')[0].value);
+    });
+    $('#config-reset').button().click(function () {
+      $('#config-value')[0].value = config.defaultConfig;
+      config.setConfig(config.defaultConfig);
+    });
+  };
+
+  Config = function (storage) {
+    if (!(this instanceof Config)) {
+      return new Config(storage);
     }
-    showStatus('Select import directory...');
-    getLocalDirectory(function (srcDir) {
-      // If destination directory is not empty, W3C spec says you cannot write
-      // to it; so remove destination before copy.
-      var dstPath = cDrivePath + '/' + srcDir.name;
-      openFileOrDirectory(dstPath, function() {
-        TheFiler.rm(dstPath, function () {
-          doImport(srcDir);
-        }, logError);
-      }, function() {
-        doImport(srcDir);
-      });
-    }, logError);
-  });
+    this.storage = storage;
+  };
 
-  $('#do-export').click(function () {
-    showStatus('Select destination...');
-    getLocalDirectory(function (dstDir) {
-      TheFiler.fs.root.getDirectory(cDrivePath, {create: true},
-        function (srcDir) {
-          TheFiler.cp(srcDir, dstDir, null, onSuccess, logError);
-        }, logError);
-    }, logError);
-  });
+  // Keys.
+  Config.prototype.args = 'dosbox-args';
+  Config.prototype.config = 'dosbox-config';
 
-  var exportWidget = new Export.Widget('export-files');
-  exportWidget.loadExportPaths(chrome.storage.sync);
-  $('#do-save-export-files-list').button().click(function () {
-    exportWidget.saveExportPaths(chrome.storage.sync);
-  });
-  $('#do-export-files').button().click(function () {
-    var dosPaths = exportWidget.getDosPaths();
-    Export.exportFiles(TheFiler, cDrivePath, dosPaths);
-  });
-  Export.getFilePaths(TheFiler, cDrivePath, function (html5fsPath) {
-    var dosPath = Export.toDosPath(cDrivePath, html5fsPath);
-    exportWidget.pushAutocompletePath(dosPath);
-  });
+  // Default values.
+  Config.prototype.defaultArgs = 'dosbox ' + cDriveMountPath;
+  Config.prototype.defaultConfig =
+    '# DOSBox configuration file\n' +
+    '[sdl]\n' +
+    'output=opengl\n';
 
-  $('#do-remove').button().click(function () {
-    showStatus('Clearing...');
-    TheFiler.rm(cDrivePath, onSuccess, logError);
-  });
+  Config.prototype.get = function (onArgs, onConfig) {
+    var getter, query;
+    getter = function (items) {
+      if (!items[this.args]) {
+        Log.w('Config.get: Could not load args: '
+            + chrome.runtime.lastError);
+      } else {
+        onArgs(items[this.args]);
+      }
+      if (!items[this.config]) {
+        Log.w('Config.get: Could not load config: '
+            + chrome.runtime.lastError);
+      } else {
+        onConfig(items[this.config]);
+      }
+    };
+    query = {};
+    query[this.args] = this.defaultArgs;
+    query[this.config] = this.defaultConfig;
+    this.storage.get(query, getter.bind(this));
+  };
 
-  var argsDefault = 'dosbox ' + cDriveMountPath;
-  var configDefault = (
-      '# DOSBox configuration file\n' +
-      '[sdl]\n' +
-      'output=opengl\n');
-  chrome.storage.sync.get({
-    args: argsDefault,
-    config: configDefault,
-  }, function (items) {
-    $('#args-value')[0].value = items.args;
-    $('#config-value')[0].value = items.config;
-  });
-  $('#args-set').button().click(function () {
-    chrome.storage.sync.set({args: $('#args-value')[0].value});
-  });
-  $('#args-reset').button().click(function () {
-    $('#args-value')[0].value = argsDefault;
-    chrome.storage.sync.set({args: argsDefault});
-  });
-  $('#config-set').button().click(function () {
-    chrome.storage.sync.set({config: $('#config-value')[0].value});
-  });
-  $('#config-reset').button().click(function () {
-    $('#config-value')[0].value = configDefault;
-    chrome.storage.sync.set({config: configDefault});
-  });
-}
+  Config.prototype.setArgs = function (newArgs) {
+    var query = {};
+    query[this.args] = newArgs;
+    this.storage.set(query);
+  };
 
+  Config.prototype.setConfig = function (newConfig) {
+    var query = {};
+    query[this.config] = newConfig;
+    this.storage.set(query);
+  };
 
-$(document).ready(function () {
-  initFiler(main);
-});
+  onError = function (error) {
+    if (error.name === 'EntryUndefined') {
+      Log.e('Could not open target (did you open a symlink?)');
+    } else if (error.name === 'InvalidModificationError') {
+      Log.e('Could not override target.');
+    } else {
+      Log.e('Error: ' + error.name);
+    }
+  };
+
+  $(document).ready(main);
+}(jQuery, Filer, Log, Import, Export));

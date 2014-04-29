@@ -3,14 +3,9 @@
 
 /*global jQuery */
 
-var Log;
-
-Log = (function ($) {
+var Log = (function ($) {
   'use strict';
-
-  var Log;
-
-  Log = {
+  return {
     elementId: '#log',
 
     duration: 8000,
@@ -35,6 +30,4 @@ Log = (function ($) {
       console.log('DEBUG: ' + message);
     },
   };
-
-  return Log;
 }(jQuery));
