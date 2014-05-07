@@ -1,16 +1,14 @@
 // Copyright (C) 2014 Che-Liang Chiou.
 
 
-/*global chrome, document, jQuery, Filer, Log, Import, Export */
+/*global chrome, document, jQuery, Filer, Log, Import, Export, DOSBoxConfig */
 
-(function ($, Filer, Log, Import, Export) {
+(function ($, Filer, Log, Import, Export, DOSBoxConfig) {
   'use strict';
-  var Config, main, afterFilerInitialized, onError,
-    filer, quota, cDrivePath, cDriveMountPath;
+  var main, afterFilerInitialized, onError, filer, quota, cDrivePath;
 
   // TODO(clchiou): Let pepper.cpp and here read these data from a config file?
   cDrivePath = '/c_drive';
-  cDriveMountPath = '/data/c_drive';
   quota = 1024 * 1024 * 1024;  // 1 GB
 
   main = function () {
@@ -21,7 +19,7 @@
   };
 
   afterFilerInitialized = function () {
-    var exportWidget, config;
+    var exportWidget;
     Log.d('Initializing UI');
 
     $('#accordion').accordion({heightStyle: 'content'});
@@ -60,80 +58,28 @@
     });
 
     // Load stored values.
-    config = new Config(chrome.storage.sync);
-    config.get(function (args) {
+    DOSBoxConfig.args(function (args) {
       $('#args-value')[0].value = args;
-    }, function (config) {
+    });
+    DOSBoxConfig.config(function (config) {
       $('#config-value')[0].value = config;
     });
     // Bind for args.
     $('#args-set').button().click(function () {
-      config.setArgs($('#args-value')[0].value);
+      DOSBoxConfig.args($('#args-value')[0].value);
     });
     $('#args-reset').button().click(function () {
-      $('#args-value')[0].value = config.defaultArgs;
-      config.setArgs(config.defaultArgs);
+      $('#args-value')[0].value = DOSBoxConfig.defaultArgs;
+      DOSBoxConfig.args(DOSBoxConfig.defaultArgs);
     });
     // Bind for config.
     $('#config-set').button().click(function () {
-      config.setConfig($('#config-value')[0].value);
+      DOSBoxConfig.config($('#config-value')[0].value);
     });
     $('#config-reset').button().click(function () {
-      $('#config-value')[0].value = config.defaultConfig;
-      config.setConfig(config.defaultConfig);
+      $('#config-value')[0].value = DOSBoxConfig.defaultConfig;
+      DOSBoxConfig.config(DOSBoxConfig.defaultConfig);
     });
-  };
-
-  Config = function (storage) {
-    if (!(this instanceof Config)) {
-      return new Config(storage);
-    }
-    this.storage = storage;
-  };
-
-  // Keys.
-  Config.prototype.args = 'dosbox-args';
-  Config.prototype.config = 'dosbox-config';
-
-  // Default values.
-  Config.prototype.defaultArgs = 'dosbox ' + cDriveMountPath;
-  Config.prototype.defaultConfig =
-    '# DOSBox configuration file\n' +
-    '[sdl]\n' +
-    'output=opengl\n';
-
-  Config.prototype.get = function (onArgs, onConfig) {
-    var getter, query;
-    getter = function (items) {
-      if (!items[this.args]) {
-        Log.w('Config.get: Could not load args: '
-            + chrome.runtime.lastError);
-      } else {
-        onArgs(items[this.args]);
-      }
-      if (!items[this.config]) {
-        Log.w('Config.get: Could not load config: '
-            + chrome.runtime.lastError);
-      } else {
-        onConfig(items[this.config]);
-      }
-    };
-    query = {};
-    query[this.args] = this.defaultArgs;
-    query[this.config] = this.defaultConfig;
-    this.storage.get(query, getter.bind(this));
-  };
-
-  Config.prototype.setArgs = function (newArgs) {
-    var query = {};
-    query[this.args] = newArgs;
-    this.storage.set(query);
-  };
-
-  Config.prototype.setConfig = function (newConfig) {
-    var query = {};
-    query[this.config] = newConfig;
-    this.storage.set(query);
   };
 
   onError = function (error) {
@@ -147,4 +93,4 @@
   };
 
   $(document).ready(main);
-}(jQuery, Filer, Log, Import, Export));
+}(jQuery, Filer, Log, Import, Export, DOSBoxConfig));

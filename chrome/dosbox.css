@@ -21,7 +21,7 @@ body {
   min-height: 400px;
 }
 
-#status {
+#log {
   position: absolute;
   left: 10px;
   bottom: 0px;

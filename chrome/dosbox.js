@@ -1,169 +1,170 @@
 // Copyright (C) 2013 Che-Liang Chiou.
 
 
-var WIDTH = 640;
-var HEIGHT = 400;
-var ASPECT_RATIO = WIDTH / HEIGHT;
+/*global chrome, document, window, Promise,
+         jQuery, Log, NaClModule, DOSBoxConfig */
 
-var X_MARGIN = 20;
-var Y_MARGIN = 30;
+(function ($, Log, NaClModule, DOSBoxConfig) {
+  'use strict';
+  var main, showStartupMessages, fill, onHintClose,
+    onLoad, onMessage, onResize, closeWindow,
+    containerId, moduleId;
 
+  containerId = '#nacl-module-container';
+  moduleId = '#nacl-module';
 
-function Module() {
-  var self = this;
+  main = function () {
+    var module;
 
-  var container = null;
-  var module = null;
+    // Load DOSBox module
+    Log.i('Loading DOSBox');
+    module = new NaClModule.Module(containerId, moduleId);
+    module.onLoad = onLoad;
+    module.onMessage = onMessage;
+    module.onUnload = closeWindow;
+    module.load('dosbox.nmf');
 
-  function load() {
-    container = $('#nacl-module-container')[0];
-    container.addEventListener('load', onLoad, true);
-    container.addEventListener('message', onMessage, true);
-    $('<embed/>', {attr: {
-      id: 'nacl-module',
-      src: 'dosbox.nmf',
-      type: 'application/x-nacl',
-    }}).addClass('nacl-module').appendTo(container);
-  }
-  self.load = load;
-
-  function unload() {
-    container.removeEventListener('load', onLoad, true);
-    container.removeEventListener('message', onMessage, true);
-    $('#nacl-module').remove();
-    container = null;
-    module = null;
-    if (self.onUnload) {
-      self.onUnload();
-    }
-  }
-  self.unload = unload;
-
-  function size() {
-    var m = $('#nacl-module');
-    return {width: m.width(), height: m.height()};
-  }
-  self.size = size;
-
-  function setCss(size) {
-    $('#nacl-module').css(size);
-  }
-  self.setCss = setCss;
-
-  function postMessage(message) {
-    module.postMessage(message);
-  }
-  self.postMessage = postMessage;
-
-  function onLoad() {
-    $('#nacl-module').focus();
-    module = $('#nacl-module')[0];
-    // Set command-line args and config.
-    chrome.storage.sync.get({
-      args: '', config: ''
-    }, function (items) {
-      if (items.args) {
-        module.postMessage(JSON.stringify({
-          type: 'app', action: 'args', value: items.args,
-        }));
-      }
-      if (items.config) {
-        module.postMessage(JSON.stringify({
-          type: 'app', action: 'config', value: items.config,
-        }));
-      }
-      // Launch DOSBox.
-      module.postMessage(JSON.stringify({
-        type: 'app', action: 'start',
-      }));
-      showStatus('DOSBox loaded');
+    // Bind config button.
+    $('#config').click(function () {
+      chrome.app.window.create('config.html', {
+        bounds: {width: 700, height: 700}
+      });
     });
-  }
 
-  function onMessage(message) {
+    // Resize handler.
+    $(window).resize(onResize);
+
+    // Show startup messages.
+    showStartupMessages();
+  };
+
+  //// showStartupMessages().
+
+  showStartupMessages = function () {
+    var keys, elementIds;
+    keys = ['first-time-use-0.1.4', 'first-time-use-0.1.5'];
+    elementIds = ['#first-time-use-0-1-4', '#first-time-use-0-1-5'];
+    chrome.storage.local.get(fill(keys, true), function (items) {
+      var i;
+      for (i in items) {
+        if (items.hasOwnProperty(i)) {
+          Log.d('showStartupMessages: ' + i + '=' + items[i]);
+        }
+      }
+      for (i = 0; i < keys.length; i++) {
+        $(elementIds[i]).dialog({
+          autoOpen: items[keys[i]],
+          buttons: [{
+            text: "Don't show this hint again",
+            click: onHintClose.bind(null, $(elementIds[i]), keys[i]),
+          }],
+        });
+      }
+    });
+  };
+
+  fill = function (keys, value) {
+    var i, items = {};
+    for (i = 0; i < keys.length; i++) {
+      items[keys[i]] = value;
+    }
+    return items;
+  };
+
+  onHintClose = function (element, key) {
+    element.dialog('close');
+    chrome.storage.local.set(fill([key], false));
+  };
+
+  //// Module callbacks.
+
+  onLoad = function () {
+    var self, argsP, configP;
+    self = this;
+    $('#nacl-module').focus();
+    argsP = new Promise(function (resolve) {
+      DOSBoxConfig.args(function (args) {
+        Log.d('onLoad: args=' + args);
+        resolve(args);
+      });
+    });
+    configP = new Promise(function (resolve) {
+      DOSBoxConfig.config(function (config) {
+        Log.d('onLoad: config=' + config);
+        resolve(config);
+      });
+    });
+    Promise.all([argsP, configP]).then(function (results) {
+      var args, config;
+      args = results[0];
+      config = results[1];
+      Log.d('onLoad: postMessage: args=' + args);
+      Log.d('onLoad: postMessage: config=' + config);
+      if (args) {
+        self.postMessage(JSON.stringify({
+          type: 'app',
+          action: 'args',
+          value: args,
+        }));
+      }
+      if (config) {
+        self.postMessage(JSON.stringify({
+          type: 'app',
+          action: 'config',
+          value: config,
+        }));
+      }
+      self.postMessage(JSON.stringify({
+        type: 'app',
+        action: 'start',
+      }));
+      Log.i('Succeeding in loading DOSBox');
+    });
+  };
+
+  onMessage = function (message) {
     if (typeof message.data !== 'string') {
-      console.log('Message is not a string: message=' + message);
+      Log.w('Message is not a string: message=' + message);
       return;
     }
-    console.log('message=' + message.data);
+    Log.d('message=' + message.data);
     message = JSON.parse(message.data);
     if (message.type === 'sys') {
       if (message.action === 'quit') {
-        unload();
-        return;
+        this.unload();
       } else if (message.action === 'log') {
-        showStatus(message.level.toUpperCase() + ': ' + message.message);
-        return;
+        Log.i(message.level.toUpperCase() + ': ' + message.message);
+      } else {
+        Log.w('Could not recognize message: message=' + message);
       }
     }
-  }
+  };
 
-  return self;
-}
+  closeWindow = function () {
+    chrome.app.window.current().close();
+  };
 
+  //// Window callbacks.
 
-function exit() {
-  showStatus('Exit');
-  chrome.app.window.current().close();
-}
-
-
-function showStatus(message) {
-  $('#status').text(message).fadeOut(8000, function() {
-    $('#status').text('').show();
-  });
-}
-
-
-function makeDictionary(key, value) {
-  var dict = {};
-  dict[key] = value;
-  return dict;
-}
-
-
-function main() {
-  var firstTimeUseKey = 'first-time-use-0.1.4';
-  chrome.storage.local.get(makeDictionary(firstTimeUseKey, true),
-  function (items) {
-    console.log('firstTimeUse=' + items[firstTimeUseKey]);
-    $('#hint').dialog({
-      autoOpen: items[firstTimeUseKey],
-      buttons: [{
-        text: "Don't show this hint again",
-        click: function() {
-          $(this).dialog('close');
-          chrome.storage.local.set(makeDictionary(firstTimeUseKey, false));
-        }
-      }]
-    });
-  });
-
-  showStatus('Loading DOSBox...');
-  var module = new Module();
-  module.onUnload = exit;
-  module.load();
-
-  $('#config').click(function () {
-    chrome.app.window.create('config.html', {
-      bounds: {
-        width:  700,
-        height: 700,
-      }
-    });
-  });
-
-  function onResize() {
+  onResize = function () {
     // XXX: Unfortunately <body> element would not automatically enlarge itself
     // to the window size (or do I miss some CSS attributes?), and thus the
     // #nacl-module-container bounding box would be much smaller than the size
     // of the window.  So don't use the size of #nacl-module-container on an
     // resize event; use the window size instead.
-    var size = {width: $(window).width(), height: $(window).height()};
+
+    var WIDTH, HEIGHT, ASPECT_RATIO, X_MARGIN, Y_MARGIN, size, width, orig;
+
+    WIDTH = 640;
+    HEIGHT = 400;
+    ASPECT_RATIO = WIDTH / HEIGHT;
+    X_MARGIN = 20;
+    Y_MARGIN = 30;
+
+    size = {width: $(window).width(), height: $(window).height()};
     size.width -= X_MARGIN;
     size.height -= Y_MARGIN;
-
-    var width = size.width;
+    width = size.width;
 
     // Honor aspect ratio.
     if (size.width > ASPECT_RATIO * size.height) {
@@ -177,17 +178,15 @@ function main() {
       size = {width: WIDTH, height: HEIGHT};
     }
 
-    var orig = module.size();
+    // Set module size.
+    orig = module.size();
     if (size.width !== orig.width || size.height !== orig.height) {
-      module.setCss(size);
+      module.css(size);
     }
 
-    // Center the element.
-    module.setCss({'padding-left': (width - size.width) / 2});
-  }
+    // Center the module.
+    module.css({'padding-left': (width - size.width) / 2});
+  };
 
-  $(window).resize(onResize);
-}
-
-
-$(document).ready(main);
+  $(document).ready(main);
+}(jQuery, Log, NaClModule, DOSBoxConfig));
