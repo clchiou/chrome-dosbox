@@ -11,13 +11,19 @@ var NaClModule = (function ($, Log) {
     if (!(this instanceof Module)) {
       return new Module(containerId, moduleId);
     }
+    if (containerId[0] === '#') {
+      containerId = containerId.substring(1);
+    }
+    if (moduleId[0] === '#') {
+      moduleId = moduleId.substring(1);
+    }
     this.containerId = containerId;
     this.moduleId = moduleId;
   };
 
   Module.prototype.container = function () {
     var container;
-    container = $(this.containerId)[0];
+    container = $('#' + this.containerId)[0];
     if (!container) {
       Log.d('Could not find container!');
     }
@@ -25,9 +31,8 @@ var NaClModule = (function ($, Log) {
   };
 
   Module.prototype.module = function () {
-    // XXX: Why sometimes jQuery couldn't find the element?
     var module;
-    module = $(this.moduleId)[0] || document.getElementById(this.moduleId);
+    module = $('#' + this.moduleId)[0];
     if (!module) {
       Log.d('Could not find module!');
     }
@@ -63,19 +68,19 @@ var NaClModule = (function ($, Log) {
     if (this.onMessage) {
       container.removeEventListener('message', this.onMessage_bind, true);
     }
-    $(this.moduleId).remove();
+    $('#' + this.moduleId).remove();
     if (this.onUnload) {
       this.onUnload();
     }
   };
 
   Module.prototype.size = function () {
-    var module = $(this.moduleId);
+    var module = $('#' + this.moduleId);
     return {width: module.width(), height: module.height()};
   };
 
   Module.prototype.css = function (css) {
-    $(this.moduleId).css(css);
+    $('#' + this.moduleId).css(css);
   };
 
   Module.prototype.postMessage = function (message) {

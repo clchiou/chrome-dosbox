@@ -157,6 +157,7 @@ void Instance::DidChangeView(const pp::Rect& position, const pp::Rect& clip) {
   width_ = position.size().width();
   height_ = position.size().height();
 
+  LOG(INFO, "Call SDL_NACL_SetInstance()");
   SDL_NACL_SetInstance(pp_instance(),
                        pp::Module::Get()->get_browser_interface(),
                        width_,

@@ -10,8 +10,8 @@
     onLoad, onMessage, onResize, closeWindow,
     containerId, moduleId;
 
-  containerId = '#nacl-module-container';
-  moduleId = '#nacl-module';
+  containerId = 'nacl-module-container';
+  moduleId = 'nacl-module';
 
   main = function () {
     var module;
@@ -118,7 +118,7 @@
         type: 'app',
         action: 'start',
       }));
-      Log.i('Succeeding in loading DOSBox');
+      Log.i('Succeed in loading DOSBox');
     });
   };
 
