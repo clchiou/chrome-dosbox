@@ -6,7 +6,7 @@
 
 (function ($, Log, NaClModule, DOSBoxConfig) {
   'use strict';
-  var main, showStartupMessages, fill, onHintClose,
+  var main, showStartupMessages,
     onLoad, onMessage, onResize, closeWindow,
     containerId, moduleId;
 
@@ -41,39 +41,38 @@
   //// showStartupMessages().
 
   showStartupMessages = function () {
-    var keys, elementIds;
-    keys = ['first-time-use-0.1.4', 'first-time-use-0.1.5'];
-    elementIds = ['#first-time-use-0-1-4', '#first-time-use-0-1-5'];
-    chrome.storage.local.get(fill(keys, true), function (items) {
-      var i;
-      for (i in items) {
-        if (items.hasOwnProperty(i)) {
-          Log.d('showStartupMessages: ' + i + '=' + items[i]);
-        }
+    var key, fill, index, hints;
+    key = DOSBoxConfig.keyShowHint;
+    fill = DOSBoxConfig.fill;
+    index = 0;
+    hints = [
+      // Hints of version 0.1.5
+      'You may export the C drive as well as selected files and directories.',
+      'Type `exit\' on command-line prompt to quit DOSBox.',
+      // Hints of version 0.1.4
+      'Click the \'?\' mark at the bottom-right corner to import games, ' +
+        'config DOSBox, etc.',
+    ];
+    chrome.storage.local.get(fill([key], true), function (items) {
+      if (!items[key]) {
+        $('#hint').hide();
+        return;
       }
-      for (i = 0; i < keys.length; i++) {
-        $(elementIds[i]).dialog({
-          autoOpen: items[keys[i]],
-          buttons: [{
-            text: "Don't show this hint again",
-            click: onHintClose.bind(null, $(elementIds[i]), keys[i]),
-          }],
-        });
-      }
+      $('#hint').dialog({
+        height: 160,
+        modal: true,
+        buttons: {
+          'Next hint': function () {
+            index = (index + 1) % hints.length;
+            $(this).text(hints[index]);
+          },
+          'Dismiss': function () {
+            chrome.storage.local.set(fill([key], false));
+            $(this).dialog('close');
+          },
+        },
+      }).text(hints[index]);
     });
-  };
-
-  fill = function (keys, value) {
-    var i, items = {};
-    for (i = 0; i < keys.length; i++) {
-      items[keys[i]] = value;
-    }
-    return items;
-  };
-
-  onHintClose = function (element, key) {
-    element.dialog('close');
-    chrome.storage.local.set(fill([key], false));
   };
 
   //// Module callbacks.

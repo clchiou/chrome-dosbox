@@ -12,10 +12,22 @@
   quota = 1024 * 1024 * 1024;  // 1 GB
 
   main = function () {
+    var items;
+
     Log.d('Initializing file system');
     filer = new Filer();
     filer.init({persistent: true, size: quota},
       afterFilerInitialized, onError);
+
+    // Show hints at startup.
+    items = DOSBoxConfig.fill([DOSBoxConfig.keyShowHint], true);
+    chrome.storage.local.get(items, function (items) {
+      $('#show-hints').prop('checked', items[DOSBoxConfig.keyShowHint]);
+    });
+    $('#show-hints').change(function () {
+      chrome.storage.local.set(DOSBoxConfig.fill([DOSBoxConfig.keyShowHint],
+          $(this).prop('checked')));
+    });
   };
 
   afterFilerInitialized = function () {

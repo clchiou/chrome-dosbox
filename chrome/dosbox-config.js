@@ -15,6 +15,8 @@ var DOSBoxConfig = (function (Log) {
   };
 
   return {
+    keyShowHint: 'show-hints-dialog',
+
     keyArgs: 'dosbox-args',
     keyConfig: 'dosbox-config',
 
@@ -44,6 +46,14 @@ var DOSBoxConfig = (function (Log) {
         query[this.keyConfig] = value;
         chrome.storage.sync.set(query);
       }
+    },
+
+    fill: function (keys, value) {
+      var i, items = {};
+      for (i = 0; i < keys.length; i++) {
+        items[keys[i]] = value;
+      }
+      return items;
     },
   };
 }(Log));
