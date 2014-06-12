@@ -32,7 +32,7 @@
     });
 
     // Resize handler.
-    $(window).resize(onResize);
+    $(window).resize(onResize.bind(null, module));
 
     // Show startup messages.
     showStartupMessages();
@@ -145,7 +145,7 @@
 
   //// Window callbacks.
 
-  onResize = function () {
+  onResize = function (module) {
     // XXX: Unfortunately <body> element would not automatically enlarge itself
     // to the window size (or do I miss some CSS attributes?), and thus the
     // #nacl-module-container bounding box would be much smaller than the size
