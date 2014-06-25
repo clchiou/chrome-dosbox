@@ -15,6 +15,7 @@
   "permissions": [
     {"fileSystem": ["directory", "write"]},
     "storage",
+    "syncFileSystem",
     "unlimitedStorage"
   ],
   "icons": {

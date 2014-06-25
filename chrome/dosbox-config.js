@@ -1,9 +1,9 @@
 // Copyright (C) 2014 Che-Liang Chiou.
 
 
-/*global chrome, Log */
+/*global chrome, Blob, FileReader, Log */
 
-var DOSBoxConfig = (function (Log) {
+var DOSBoxConfig = (function (Blob, FileReader, Log) {
   'use strict';
   var get;
 
@@ -18,9 +18,15 @@ var DOSBoxConfig = (function (Log) {
     keyShowHint: 'show-hints-dialog',
 
     keyArgs: 'dosbox-args',
-    keyConfig: 'dosbox-config',
-
     defaultArgs: 'dosbox /data/c_drive',
+
+    keyConfigStorageType: 'dosbox-config-storage-type',
+    defaultConfigStorageType: 'chrome-storage',
+
+    typeChromeStorage: 'chrome-storage',
+    typeGoogleDrive: 'google-drive',
+
+    keyConfig: 'dosbox-config',
     defaultConfig:
       '# DOSBox configuration file\n' +
       '[sdl]\n' +
@@ -37,7 +43,33 @@ var DOSBoxConfig = (function (Log) {
       }
     },
 
+    configStorageType: function (value) {
+      var query = {};
+      if (typeof value === 'function') {
+        query[this.keyConfigStorageType] = this.defaultConfigStorageType;
+        chrome.storage.sync.get(query,
+            get.bind(null, this.keyConfigStorageType, value));
+      } else {
+        query[this.keyConfigStorageType] = value;
+        chrome.storage.sync.set(query);
+      }
+    },
+
     config: function (value) {
+      var onConfigStorageType = function (type) {
+        Log.d('onConfigStorageType: type=' + type);
+        if (type === this.typeChromeStorage) {
+          this.configChromeStorage(value);
+        } else if (type === this.typeGoogleDrive) {
+          this.configGoogleDrive(value);
+        } else {
+          Log.e('Could not store config file');
+        }
+      };
+      this.configStorageType(onConfigStorageType.bind(this));
+    },
+
+    configChromeStorage: function (value) {
       var query = {};
       if (typeof value === 'function') {
         query[this.keyConfig] = this.defaultConfig;
@@ -48,6 +80,41 @@ var DOSBoxConfig = (function (Log) {
       }
     },
 
+    configGoogleDrive: function (value) {
+      chrome.syncFileSystem.requestFileSystem(function (fs) {
+        var path, onEntry, onError;
+
+        path = 'dosbox-chrome.conf';
+
+        onEntry = function (entry) {
+          if (typeof value === 'function') {
+            entry.file(function (file) {
+              var reader = new FileReader();
+              reader.onloadend = function () {
+                value(this.result);
+              };
+              reader.readAsText(file);
+            }, onError);
+          } else {
+            entry.createWriter(function (writer) {
+              writer.onwriteend = function () {
+                Log.d('configGoogleDrive: onwriteend: succeed!');
+              };
+              writer.onerror = onError;
+              writer.write(new Blob([value]));
+            }, onError);
+          }
+        };
+
+        onError = function (error) {
+          Log.d('configGoogleDrive: onError: error=' + error);
+          Log.e('Could not access config file: ' + error);
+        };
+
+        fs.root.getFile(path, {create: true}, onEntry.bind(this), onError);
+      }.bind(this));
+    },
+
     fill: function (keys, value) {
       var i, items = {};
       for (i = 0; i < keys.length; i++) {
@@ -56,4 +123,4 @@ var DOSBoxConfig = (function (Log) {
       return items;
     },
   };
-}(Log));
+}(Blob, FileReader, Log));

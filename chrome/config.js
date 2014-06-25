@@ -78,19 +78,48 @@
     });
     // Bind for args.
     $('#args-set').button().click(function () {
+      Log.d('Save command-line arguments');
       DOSBoxConfig.args($('#args-value')[0].value);
     });
     $('#args-reset').button().click(function () {
+      Log.d('Restore command-line arguments');
       $('#args-value')[0].value = DOSBoxConfig.defaultArgs;
       DOSBoxConfig.args(DOSBoxConfig.defaultArgs);
     });
     // Bind for config.
     $('#config-set').button().click(function () {
-      DOSBoxConfig.config($('#config-value')[0].value);
+      var contents = $('#config-value')[0].value;
+      Log.d('Save config file');
+      DOSBoxConfig.configStorageType(function (type) {
+        if (type !== DOSBoxConfig.typeChromeStorage) {
+          return;
+        }
+        if (contents.length < 4096) {
+          return;
+        }
+        $('#info').dialog().text(
+          'Config file exceeds internal storage size limit. ' +
+            'Please use Google Drive (check the box on the right).'
+        );
+      });
+      DOSBoxConfig.config(contents);
     });
     $('#config-reset').button().click(function () {
+      Log.d('Restore config file');
       $('#config-value')[0].value = DOSBoxConfig.defaultConfig;
       DOSBoxConfig.config(DOSBoxConfig.defaultConfig);
+    });
+    // Bind for 'Store to Google Drive'
+    DOSBoxConfig.configStorageType(function (type) {
+      $('#config-google-drive').prop('checked',
+        type === DOSBoxConfig.typeGoogleDrive);
+    });
+    $('#config-google-drive').change(function () {
+      var type = DOSBoxConfig.defaultConfigStorageType;
+      if ($(this).prop('checked')) {
+        type = DOSBoxConfig.typeGoogleDrive;
+      }
+      DOSBoxConfig.configStorageType(type);
     });
   };
 
