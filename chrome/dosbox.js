@@ -1,9 +1,6 @@
 // Copyright (C) 2013 Che-Liang Chiou.
 
 
-/*global chrome, document, window, Promise,
-         jQuery, Log, NaClModule, DOSBoxConfig */
-
 (function ($, Log, NaClModule, DOSBoxConfig) {
   'use strict';
   var main, showStartupMessages,

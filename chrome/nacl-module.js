@@ -1,8 +1,6 @@
 // Copyright (C) 2014 Che-Liang Chiou.
 
 
-/*global document, jQuery, Log */
-
 var NaClModule = (function ($, Log) {
   'use strict';
   var Module;

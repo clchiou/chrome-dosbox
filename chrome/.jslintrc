@@ -1,0 +1,6 @@
+{
+  "predef": ["Blob", "FileReader", "Promise",
+             "chrome",
+             "Filer", "jQuery",
+             "DOSBoxConfig", "Export", "FsUtil", "Import", "Log", "NaClModule"]
+}

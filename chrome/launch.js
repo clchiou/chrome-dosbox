@@ -1,8 +1,6 @@
 // Copyright (C) 2013 Che-Liang Chiou.
 
 
-/*global chrome */
-
 (function () {
   'use strict';
   chrome.app.runtime.onLaunched.addListener(function () {

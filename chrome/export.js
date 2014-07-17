@@ -1,8 +1,6 @@
 // Copyright (C) 2014 Che-Liang Chiou.
 
 
-/*global chrome, jQuery, Log, FsUtil */
-
 var Export = (function ($, Log, FsUtil) {
   'use strict';
 

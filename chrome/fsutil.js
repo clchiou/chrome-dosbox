@@ -1,8 +1,6 @@
 // Copyright (C) 2014 Che-Liang Chiou.
 
 
-/*global chrome, Log */
-
 var FsUtil = (function (Log) {
   'use strict';
   return {

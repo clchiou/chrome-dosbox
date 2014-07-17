@@ -1,8 +1,6 @@
 // Copyright (C) 2014 Che-Liang Chiou.
 
 
-/*global jQuery */
-
 var Log = (function ($) {
   'use strict';
   return {

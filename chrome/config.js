@@ -1,8 +1,6 @@
 // Copyright (C) 2014 Che-Liang Chiou.
 
 
-/*global chrome, document, jQuery, Filer, Log, Import, Export, DOSBoxConfig */
-
 (function ($, Filer, Log, Import, Export, DOSBoxConfig) {
   'use strict';
   var main, afterFilerInitialized, onError, filer, quota, cDrivePath;

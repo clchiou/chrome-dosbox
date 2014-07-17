@@ -1,8 +1,6 @@
 // Copyright (C) 2014 Che-Liang Chiou.
 
 
-/*global chrome, Blob, FileReader, Log */
-
 var DOSBoxConfig = (function (Blob, FileReader, Log) {
   'use strict';
   var get;

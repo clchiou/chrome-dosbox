@@ -1,8 +1,6 @@
 // Copyright (C) 2014 Che-Liang Chiou.
 
 
-/*global Log, FsUtil */
-
 var Import = (function (Log, FsUtil) {
   'use strict';
   return {
